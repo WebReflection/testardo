@@ -4,19 +4,21 @@
 REPO = testardo
 
 # make node files
-NODE =  src/env.sh\
+NODE =  src/env\
         src/NL\
         LICENSE.txt\
         src/NL\
-        src/client-old-ie-timers.js\
+        src/client/old-ie-timers.js\
         src/NL\
-        src/client-main.js\
+        src/client/main.js\
         src/NL\
         src/server-a.js\
         src/NL\
-        src/server-how-to.js\
+        src/server/how-to.js\
         src/NL\
-        src/server-args.js\
+        src/server/args.js\
+        src/NL\
+        src/server/main.js\
         src/NL\
         src/server-z.js
 

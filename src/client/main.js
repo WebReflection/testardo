@@ -1,18 +1,24 @@
-#!/usr/bin/env node
-
-// ./mobote $(ls *.js)
-
-// exported here but actually used only in the client side
-
-// http://webreflection.blogspot.com/2007/06/simple-settimeout-setinterval-extra.html
-/*@cc_on
-(function(f){
- window.setTimeout =f(window.setTimeout);
- window.setInterval =f(window.setInterval);
-})(function(f){return function(c,t){var a=[].slice.call(arguments,2);return f(function(){c.apply(this,a)},t)}});
-@*/
-
 this.$ = function(global) {
+  function createEvent(type) {
+    var e;
+    if (document.createEvent) {
+      e = document.createEvent('Event');
+      e.initEvent(type, true, true);
+    } else {
+      e = document.createEventObject();
+      e._type = type;
+    }
+    return e;
+  }
+  function dispatch(node, evt) {
+    if ('dispatchEvent' in node) {
+      node.dispatchEvent(evt);
+    } else {
+      var type = evt._type;
+      delete evt._type;
+      node.fireEvent(type, evt);
+    }
+  }
   function error(e) {
     sandbox.error(e.message);
   }
@@ -89,8 +95,7 @@ this.$ = function(global) {
       window: window,
       document: document,
       event: function (type, options) {
-        var e = document.createEvent('Event');
-        e.initEvent(type, true, true);
+        var e = createEvent(type);
         if (options) {
           e.detail = options;
           for(var key in options) {
@@ -104,6 +109,14 @@ this.$ = function(global) {
         return e;
       },
       dispatch: function (nodeOrQuery, typeOrEvent, eventOptions) {
+        dispatch(
+          typeof nodeOrQuery == 'string' ?
+            document.querySelector(nodeOrQuery) :
+            nodeOrQuery,
+          typeof typeOrEvent == 'string' ?
+            sandbox.event(typeOrEvent, eventOptions || {}) :
+            typeOrEvent
+        );
         (typeof nodeOrQuery == 'string' ?
           document.querySelector(nodeOrQuery) :
           nodeOrQuery
@@ -179,115 +192,9 @@ this.$ = function(global) {
     } else {
       xhr.open('GET', '*' + new Date * 1, false);
       xhr.send(null);
+      setTimeout(function(){
+        top.location.reload();
+      }, 5000);
     }
   }());
 };
-
-//<server>
-var
-  http = require('http'),
-  fs = require('fs'),
-  path = require('path'),
-  os = require('os'),
-  EOL = os.EOL || '\n',
-  // which IP for the current server + proxy ?
-  IP = process.env.IP || '0.0.0.0',
-  // which port is for testardo ?
-  PORT = process.env.PORT || 7357,
-  // which host/domain name ?
-  HOST = process.env.HOST || 'localhost',
-  // which server port to mirror/proxy via testardo ?
-  MIRROR = process.env.MIRROR || 80,
-  // how long before each file can timeout ?
-  TIMEOUT = Math.max(0, parseInt(process.env.TIMEOUT || 0, 10)) || 30000,
-  // recycled options object per each proxy request
-  options = {
-    host: HOST,
-    port: MIRROR,
-    path: ''
-  },
-  // recycled headers for entry page
-  html = {"Content-Type": "text/html"},
-  javascript = {"Content-Type": "application/javascript"},
-  // what to do once loaded
-  onload = function(response) {
-    // send same status and headers
-    this.response.writeHead(response.statusCode, response.headers);
-    // pipe the whole response to the current one
-    response.pipe(this.response);
-  },
-  // entry point, the root of the project
-  main = /^\/\$/,
-  // occurred errors
-  error = /^\/\!/,
-  // everything fine
-  allgood = /^\/\*/,
-  // strip out beginning of this file and server related stuff
-  fn = /^#[^\n\r]+|<(server)>[^\x00]*?<\/\1>/g,
-  // all listed files to pass to the client
-  tests = JSON.stringify(
-    process.argv.slice(2).map(function(name){
-      return {
-        name: name,
-        content: fs.readFileSync(name, 'utf-8').toString()
-      };
-    })
-  )
-;
-
-// the proxy server
-function server(req, response){
-  if (main.test(req.url)) {
-    response.writeHead(200, html);
-    response.end('<!DOCTYPE html>'.concat(
-      '<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">',
-      '<style>*{zoom:1;border:0;margin:0;padding:0;width:100%;height:100%;font-size:0;line-height:0;}</style>',
-      '<script>', fs.readFileSync(__filename, 'utf-8').toString().replace(fn, ''), EOL,
-        '$.tests=', tests, ';', EOL,
-        '$.timeout=', TIMEOUT, ';', EOL,
-      ';</script>',
-      '<script>document.write(',
-        '"<iframe src=\\"" + ',
-          'location.href.split("$").join("")',
-        ' + "\\" onload=\\"',
-          '$(window)',
-        '\\"></iframe>"',
-      ')</script>'
-    ));
-  } else if(error.test(req.url)) {
-    process.stderr.write(JSON.parse(unescape(req.url.slice(2))).join(EOL));
-    process.exit(1);
-  } else if(allgood.test(req.url)) {
-    response.writeHead(200, html);
-    response.end('');
-    process.nextTick(process.exit.bind(process, 0));
-  } else {
-    options.path = req.url;
-    options.headers = req.headers;
-    http.get(options, onload).response = response;
-  }
-}
-(function startServer() {
-  http.createServer(server).on('error', startServer).listen(PORT++, IP, function() {
-    // show possible WiFi interfaces during startup
-    var interfaces = os.networkInterfaces(),
-        show = [];
-    Object.keys(interfaces).forEach(
-      function(key){
-        interfaces[key].forEach(this, key);
-      },
-      function(obj){
-        if (
-          !obj.internal &&
-          obj.family === 'IPv4' &&
-          /^en[1-9]\d*|wlan\d+$/.test(this)
-        ) {
-          show.push(this + ': http://' + obj.address + ':' + (PORT - 1) + '/$');
-        }
-      }
-    );
-    show.push('');
-    process.stdout.write(show.join('\n'));
-  });
-})();
-//</server>
