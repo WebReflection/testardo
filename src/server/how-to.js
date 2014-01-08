@@ -10,6 +10,7 @@ if (process.argv.length < 3) {
     '   --host=localhost  the host name. it could be a remote address too',
     '   --mirror=80       the port to mirror in the host. The usual/default webserver port',
     '   --timeout=30000   each the test timeout in milliseconds',
+    '   --email=me@you.us if specified, sends an email with errors before exiting',
     ''
   ].join(require('os').EOL || '\n'));
   process.exit(0);

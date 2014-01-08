@@ -20,7 +20,9 @@ this.$ = function(global) {
     }
   }
   function error(e) {
-    sandbox.error(e.message);
+    sandbox.error(e.message + (
+      e.stack ? '\n' + e.stack : ''
+    ));
   }
   function onload() {
     iframe.onload = onUncaughtLoad;

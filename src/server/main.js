@@ -77,7 +77,13 @@ function server(req, response){
         stdio: [
           'pipe', 'pipe', 'pipe'
         ]
-      }).on('close', process.exit.bind(process));
+      })
+        .on(
+          'close',
+          // always exit with code 1
+          process.exit.bind(process, 1)
+        )
+      ;
       mail.unref();
       mail.stdin.write(
         body, null, mail.stdin.end.bind(mail.stdin)
