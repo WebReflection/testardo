@@ -1,4 +1,18 @@
 this.$ = function(global) {
+  function showResult(text) {
+    var html = document.documentElement;
+    html.style.background = text == 'OK' ? '#0F0' : '#F00';
+    html.innerHTML = '<center><b>' + text + '</b></center>';
+  }
+  function addIframeOnLoad(callback) {
+    iframe.onload = callback ?
+      function () {
+        onload();
+        setTimeout(callback, 100, sandbox, window, document);
+      } :
+      onload
+    ;
+  }
   function createEvent(type) {
     var e;
     if (document.createEvent) {
@@ -16,13 +30,36 @@ this.$ = function(global) {
     } else {
       var type = evt._type;
       delete evt._type;
+      evt.preventDefault = preventDefault;
+      evt.stopPropagation = stopPropagation;
       node.fireEvent(type, evt);
     }
+    return evt;
+  }
+  function preventDefault() {
+    this.returnValue = false;
+    this.defaultPrevented = true;
+  }
+  function stopPropagation() {
+    this.cancelBubble = true;
+  }
+  function getNode(nodeOrQuery) {
+    return typeof nodeOrQuery == 'string' ?
+      document.querySelector(nodeOrQuery) :
+      nodeOrQuery;
+  }
+  function onerror(message, lineno, filename) {
+    alert([message, lineno, filename].join('\n'));
   }
   function error(e) {
-    sandbox.error(e.message + (
-      e.stack ? '\n' + e.stack : ''
-    ));
+    var message;
+    if (e instanceof Error) {
+      message = e.message + (
+        e.stack ? '\n' + e.stack : ''
+      );
+    }
+    showResult(message);
+    sandbox.error(message);
   }
   function onload() {
     iframe.onload = onUncaughtLoad;
@@ -61,6 +98,7 @@ this.$ = function(global) {
       }.call(context = {}));
       queryAll = context.qwery;
     }
+    window.onerror = onerror;
     window.addEventListener('error', error, true);
   }
   function XHR() {
@@ -76,9 +114,12 @@ this.$ = function(global) {
       document.body.offsetWidth
     ),
     TIMEOUT = $.timeout,
+    LOOP = $.loop,
     tests = $.tests,
     errors = [],
     lastFile = '',
+    lastAction = '',
+    lastCallback = null,
     timer = 0,
     iframe = global.document.getElementsByTagName('iframe')[0],
     window = frames[0],
@@ -111,41 +152,81 @@ this.$ = function(global) {
         return e;
       },
       dispatch: function (nodeOrQuery, typeOrEvent, eventOptions) {
-        dispatch(
-          typeof nodeOrQuery == 'string' ?
-            document.querySelector(nodeOrQuery) :
-            nodeOrQuery,
+        return dispatch(
+          getNode(nodeOrQuery),
           typeof typeOrEvent == 'string' ?
             sandbox.event(typeOrEvent, eventOptions || {}) :
             typeOrEvent
         );
-        (typeof nodeOrQuery == 'string' ?
-          document.querySelector(nodeOrQuery) :
-          nodeOrQuery
-        ).dispatchEvent(typeof typeOrEvent == 'string' ?
-          sandbox.event(typeOrEvent, eventOptions || {}) :
-          typeOrEvent
-        );
       },
       then: function (callback) {
-        iframe.onload = function (callback) {
-          onload();
-          setTimeout(callback, 100, sandbox, window, document);
-        };
+        switch(lastAction) {
+          case 'load':
+            addIframeOnLoad(callback);
+            break;
+          case 'write':
+            lastCallback = callback;
+            break;
+        }
+      },
+      loadFromDifferentDomain: function(href, callback) {
+        sandbox.status = 0;
+        addIframeOnLoad(callback);
+        window.location.href = '/' + encodeURIComponent('<<<' + href);
+        lastAction = 'load';
+        return sandbox;
       },
       load: function (href, callback) {
         var xhr = XHR();
         xhr.open('HEAD', href, false);
         xhr.send(null);
         sandbox.status = xhr.status;
-        iframe.onload = callback ?
-          function () {
-            onload();
-            setTimeout(callback, 100, sandbox, window, document);
-          } :
-          onload
-        ;
+        addIframeOnLoad(callback);
         window.location.href = href;
+        lastAction = 'load';
+        return sandbox;
+      },
+      write: function (nodeOrQuery, text, callback) {
+        for(var
+          goOnIfNotPrevented = function (type, options) {
+            if (!evt.defaultPrevented) {
+              evt = sandbox.dispatch(node, type, options);
+            }
+          },
+          put = function(i) {
+            var
+              c = chars[i],
+              code = c.charCodeAt(0),
+              options = {
+                charCode: code,
+                keyCode: code,
+                which: code,
+                'char': c,
+                key: c
+              }
+            ;
+            goOnIfNotPrevented('keydown', options);
+            goOnIfNotPrevented('keypress', options);
+            goOnIfNotPrevented('keyup', options);
+            if (!evt.defaultPrevented && node.value.length === i) {
+              node.value += c;
+            }
+            if (i === chars.length - 1) {
+              setTimeout(
+                callback || lastCallback,
+                100, sandbox, window, document
+              );
+            }
+            evt = {};
+          },
+          evt = {},
+          node = getNode(nodeOrQuery),
+          chars = text.split(''),
+          i = 0; i < chars.length; i++
+        ) {
+          setTimeout(put, i * 100, i);
+        }
+        lastAction = 'write';
         return sandbox;
       }
     },
@@ -174,7 +255,12 @@ this.$ = function(global) {
       try {
         module = {};
         Function('window,module', file.content).call(window, window, module);
-        sandbox.load(module.exports.path, function () {
+        if (typeof module.exports === 'function') {
+          module.exports = {
+            test: module.exports
+          };
+        }
+        sandbox.load(module.exports.path || '/', function () {
           timer = setTimeout(error, TIMEOUT, 'Expired');
           module.exports.test.apply(module.exports, arguments);
         });
@@ -194,9 +280,12 @@ this.$ = function(global) {
     } else {
       xhr.open('GET', '*' + new Date * 1, false);
       xhr.send(null);
-      setTimeout(function(){
-        top.location.reload();
-      }, 5000);
+      if (LOOP) {
+        setTimeout(function(){
+          top.location.reload();
+        }, 10000);
+      }
+      showResult('OK');
     }
   }());
 };

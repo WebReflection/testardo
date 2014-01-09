@@ -11,6 +11,7 @@ if (process.argv.length < 3) {
     '   --mirror=80       the port to mirror in the host. The usual/default webserver port',
     '   --timeout=30000   each the test timeout in milliseconds',
     '   --email=me@you.us if specified, sends an email with errors before exiting',
+    '   --loop=1          if 0 or false, it exists after first execution',
     ''
   ].join(require('os').EOL || '\n'));
   process.exit(0);

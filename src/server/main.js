@@ -16,6 +16,8 @@ var
   TIMEOUT = Math.max(0, parseInt(process.env.TIMEOUT || 0, 10)) || 30000,
   // who should be notified in case of failure ?
   EMAIL = process.env.EMAIL || '',
+  // should it loop forever or not ?
+  DONT_LOOP = /^false|0$/.test(process.env.LOOP || 1),
   FULL_HOST = HOST + ':' + MIRROR,
   // recycled options object per each proxy request
   options = {
@@ -27,8 +29,16 @@ var
   html = {"Content-Type": "text/html"},
   // what to do once loaded
   onload = function(response) {
+    response.headers['x-frame-options'] = 'ALLOWALL';
+    response.headers['x-xss-protection'] = 0;
     // send same status and headers
     this.response.writeHead(response.statusCode, response.headers);
+    /*
+    this.response.addTrailers({
+      'x-frame-options': 'ALLOWALL',
+      'x-xss-protection': 0
+    });
+    //*/
     // pipe the whole response to the current one
     response.pipe(this.response);
   },
@@ -38,9 +48,19 @@ var
   error = /^\/\!/,
   // everything fine
   allgood = /^\/\*/,
+  // external url
+  external = /^\/%3C%3C%3C/,
   // strip out beginning of this file and server related stuff
   fn = /^#[^\n\r]+|\/\*(server)[^\x00]*?\1\*\//g
 ;
+
+function emptyPage(response, exit) {
+  response.writeHead(200, html);
+  response.end('');
+  if (exit) {
+    process.nextTick(process.exit.bind(process, 0));
+  }
+}
 
 // the proxy server
 function server(req, response){
@@ -53,6 +73,7 @@ function server(req, response){
       '<script>', fs.readFileSync(__filename, 'utf-8').toString().replace(fn, ''), EOL,
         '$.tests=', JSON.stringify(tests), ';', EOL,
         '$.timeout=', TIMEOUT, ';', EOL,
+        '$.loop=', !DONT_LOOP,
       ';</script>',
       '<script>document.write(',
         '"<iframe src=\\"" + ',
@@ -65,6 +86,9 @@ function server(req, response){
   } else if(error.test(req.url)) {
     var body = JSON.parse(unescape(req.url.slice(2))).join(EOL);
     process.stderr.write(body);
+    // in case there is an email notification
+    // it stops the process so no spam will occur
+    emptyPage(response, EMAIL ? true : DONT_LOOP);
     if (EMAIL) {
       var mail = require('child_process').spawn('mail', [
         '-s',
@@ -88,14 +112,14 @@ function server(req, response){
       mail.stdin.write(
         body, null, mail.stdin.end.bind(mail.stdin)
       );
-    } else {
-      process.exit(1);
     }
-  } else if(allgood.test(req.url)) {
-    response.writeHead(200, html);
-    response.end('');
-    // console.log('[OK] ' + req.headers['user-agent']);
-    // process.nextTick(process.exit.bind(process, 0));
+  } else if(allgood.test(req.url)) {  
+    console.log('[OK] ' + req.headers['user-agent']);
+    emptyPage(response, DONT_LOOP);
+  } else if(external.test(req.url)) {
+    http.get(require('url').parse(
+      decodeURIComponent(req.url.slice(10))
+    ), onload).response = response;
   } else {
     options.path = req.url;
     options.headers = req.headers;
@@ -125,4 +149,4 @@ function server(req, response){
     show.push('');
     process.stdout.write(show.join('\n'));
   });
-})();
+}());

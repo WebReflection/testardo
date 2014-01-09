@@ -2,11 +2,18 @@ var
   fs = require('fs'),
   path = require('path'),
   tests = [],
+  grabTest = function (name) {
+    return fs.readFileSync(name, 'utf-8').toString();
+  },
   addTest = function (name) {
-    tests.push({
+    fs.watch(name, function(event) {
+      if (event == 'change') {
+        tests[this].content = grabTest(name);
+      }
+    }.bind(tests.push({
       name: name,
-      content: fs.readFileSync(name, 'utf-8').toString()
-    });
+      content: grabTest(name)
+    }) - 1));
   }
 ;
 
@@ -14,7 +21,7 @@ var
 process.argv.slice(2).forEach(function(arg){
   // set the environment option, if present
   if (this.re.test(arg)) {
-    process.env[RegExp.$1.toUpperCase()] = RegExp.$2;
+    process.env[RegExp.$1.toUpperCase()] = RegExp.$3 || 1;
   }
   // or grab the file content or any js test in the folder
   else {
@@ -26,7 +33,7 @@ process.argv.slice(2).forEach(function(arg){
     }
   }
 }, {
-  re: /--([^=]+?)=([^\x00]+)$/,
+  re: /--([^=]+?)(=([^\x00]+))?$/,
   filter: function (name) {
     return name.slice(-3) === '.js';
   },

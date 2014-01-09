@@ -31,6 +31,20 @@
 @*/
 
 this.$ = function(global) {
+  function showResult(text) {
+    var html = document.documentElement;
+    html.style.background = text == 'OK' ? '#0F0' : '#F00';
+    html.innerHTML = '<center><b>' + text + '</b></center>';
+  }
+  function addIframeOnLoad(callback) {
+    iframe.onload = callback ?
+      function () {
+        onload();
+        setTimeout(callback, 100, sandbox, window, document);
+      } :
+      onload
+    ;
+  }
   function createEvent(type) {
     var e;
     if (document.createEvent) {
@@ -48,10 +62,35 @@ this.$ = function(global) {
     } else {
       var type = evt._type;
       delete evt._type;
+      evt.preventDefault = preventDefault;
+      evt.stopPropagation = stopPropagation;
       node.fireEvent(type, evt);
     }
+    return evt;
+  }
+  function preventDefault() {
+    this.returnValue = false;
+    this.defaultPrevented = true;
+  }
+  function stopPropagation() {
+    this.cancelBubble = true;
+  }
+  function getNode(nodeOrQuery) {
+    return typeof nodeOrQuery == 'string' ?
+      document.querySelector(nodeOrQuery) :
+      nodeOrQuery;
+  }
+  function onerror(message, lineno, filename) {
+    alert([message, lineno, filename].join('\n'));
   }
   function error(e) {
+    /*
+    console.log(e);
+    alert(e.target);
+    alert(window.error);
+    alert(Object.keys(e));
+    */
+    showResult(e.stack || e.message || 'ERROR');
     sandbox.error(e.message + (
       e.stack ? '\n' + e.stack : ''
     ));
@@ -94,6 +133,7 @@ this.$ = function(global) {
       queryAll = context.qwery;
     }
     window.addEventListener('error', error, true);
+    window.onerror = onerror;
   }
   function XHR() {
     return global.XMLHttpRequest ?
@@ -108,9 +148,12 @@ this.$ = function(global) {
       document.body.offsetWidth
     ),
     TIMEOUT = $.timeout,
+    LOOP = $.loop,
     tests = $.tests,
     errors = [],
     lastFile = '',
+    lastAction = '',
+    lastCallback = null,
     timer = 0,
     iframe = global.document.getElementsByTagName('iframe')[0],
     window = frames[0],
@@ -143,41 +186,81 @@ this.$ = function(global) {
         return e;
       },
       dispatch: function (nodeOrQuery, typeOrEvent, eventOptions) {
-        dispatch(
-          typeof nodeOrQuery == 'string' ?
-            document.querySelector(nodeOrQuery) :
-            nodeOrQuery,
+        return dispatch(
+          getNode(nodeOrQuery),
           typeof typeOrEvent == 'string' ?
             sandbox.event(typeOrEvent, eventOptions || {}) :
             typeOrEvent
         );
-        (typeof nodeOrQuery == 'string' ?
-          document.querySelector(nodeOrQuery) :
-          nodeOrQuery
-        ).dispatchEvent(typeof typeOrEvent == 'string' ?
-          sandbox.event(typeOrEvent, eventOptions || {}) :
-          typeOrEvent
-        );
       },
       then: function (callback) {
-        iframe.onload = function (callback) {
-          onload();
-          setTimeout(callback, 100, sandbox, window, document);
-        };
+        switch(lastAction) {
+          case 'load':
+            addIframeOnLoad(callback);
+            break;
+          case 'write':
+            lastCallback = callback;
+            break;
+        }
+      },
+      loadFromDifferentDomain: function(href, callback) {
+        sandbox.status = 0;
+        addIframeOnLoad(callback);
+        window.location.href = '/' + encodeURIComponent('<<<' + href);
+        lastAction = 'load';
+        return sandbox;
       },
       load: function (href, callback) {
         var xhr = XHR();
         xhr.open('HEAD', href, false);
         xhr.send(null);
         sandbox.status = xhr.status;
-        iframe.onload = callback ?
-          function () {
-            onload();
-            setTimeout(callback, 100, sandbox, window, document);
-          } :
-          onload
-        ;
+        addIframeOnLoad(callback);
         window.location.href = href;
+        lastAction = 'load';
+        return sandbox;
+      },
+      write: function (nodeOrQuery, text, callback) {
+        for(var
+          goOnIfNotPrevented = function (type, options) {
+            if (!evt.defaultPrevented) {
+              evt = sandbox.dispatch(node, type, options);
+            }
+          },
+          put = function(i) {
+            var
+              c = chars[i],
+              code = c.charCodeAt(0),
+              options = {
+                charCode: code,
+                keyCode: code,
+                which: code,
+                'char': c,
+                key: c
+              }
+            ;
+            goOnIfNotPrevented('keydown', options);
+            goOnIfNotPrevented('keypress', options);
+            goOnIfNotPrevented('keyup', options);
+            if (!evt.defaultPrevented && node.value.length === i) {
+              node.value += c;
+            }
+            if (i === chars.length - 1) {
+              setTimeout(
+                callback || lastCallback,
+                100, sandbox, window, document
+              );
+            }
+            evt = {};
+          },
+          evt = {},
+          node = getNode(nodeOrQuery),
+          chars = text.split(''),
+          i = 0; i < chars.length; i++
+        ) {
+          setTimeout(put, i * 100, i);
+        }
+        lastAction = 'write';
         return sandbox;
       }
     },
@@ -206,7 +289,12 @@ this.$ = function(global) {
       try {
         module = {};
         Function('window,module', file.content).call(window, window, module);
-        sandbox.load(module.exports.path, function () {
+        if (typeof module.exports === 'function') {
+          module.exports = {
+            test: module.exports
+          };
+        }
+        sandbox.load(module.exports.path || '/', function () {
           timer = setTimeout(error, TIMEOUT, 'Expired');
           module.exports.test.apply(module.exports, arguments);
         });
@@ -226,9 +314,12 @@ this.$ = function(global) {
     } else {
       xhr.open('GET', '*' + new Date * 1, false);
       xhr.send(null);
-      setTimeout(function(){
-        top.location.reload();
-      }, 5000);
+      if (LOOP) {
+        setTimeout(function(){
+          top.location.reload();
+        }, 10000);
+      }
+      showResult('OK');
     }
   }());
 };
@@ -248,6 +339,7 @@ if (process.argv.length < 3) {
     '   --mirror=80       the port to mirror in the host. The usual/default webserver port',
     '   --timeout=30000   each the test timeout in milliseconds',
     '   --email=me@you.us if specified, sends an email with errors before exiting',
+    '   --loop=1          if 0 or false, it exists after first execution',
     ''
   ].join(require('os').EOL || '\n'));
   process.exit(0);
@@ -257,11 +349,18 @@ var
   fs = require('fs'),
   path = require('path'),
   tests = [],
+  grabTest = function (name) {
+    return fs.readFileSync(name, 'utf-8').toString();
+  },
   addTest = function (name) {
-    tests.push({
+    fs.watch(name, function(event) {
+      if (event == 'change') {
+        tests[this].content = grabTest(name);
+      }
+    }.bind(tests.push({
       name: name,
-      content: fs.readFileSync(name, 'utf-8').toString()
-    });
+      content: grabTest(name)
+    }) - 1));
   }
 ;
 
@@ -269,7 +368,7 @@ var
 process.argv.slice(2).forEach(function(arg){
   // set the environment option, if present
   if (this.re.test(arg)) {
-    process.env[RegExp.$1.toUpperCase()] = RegExp.$2;
+    process.env[RegExp.$1.toUpperCase()] = RegExp.$3 || 1;
   }
   // or grab the file content or any js test in the folder
   else {
@@ -281,7 +380,7 @@ process.argv.slice(2).forEach(function(arg){
     }
   }
 }, {
-  re: /--([^=]+?)=([^\x00]+)$/,
+  re: /--([^=]+?)(=([^\x00]+))?$/,
   filter: function (name) {
     return name.slice(-3) === '.js';
   },
@@ -308,6 +407,8 @@ var
   TIMEOUT = Math.max(0, parseInt(process.env.TIMEOUT || 0, 10)) || 30000,
   // who should be notified in case of failure ?
   EMAIL = process.env.EMAIL || '',
+  // should it loop forever or not ?
+  DONT_LOOP = /^false|0$/.test(process.env.LOOP || 1),
   FULL_HOST = HOST + ':' + MIRROR,
   // recycled options object per each proxy request
   options = {
@@ -319,8 +420,16 @@ var
   html = {"Content-Type": "text/html"},
   // what to do once loaded
   onload = function(response) {
+    response.headers['x-frame-options'] = 'ALLOWALL';
+    response.headers['x-xss-protection'] = 0;
     // send same status and headers
     this.response.writeHead(response.statusCode, response.headers);
+    /*
+    this.response.addTrailers({
+      'x-frame-options': 'ALLOWALL',
+      'x-xss-protection': 0
+    });
+    //*/
     // pipe the whole response to the current one
     response.pipe(this.response);
   },
@@ -330,9 +439,19 @@ var
   error = /^\/\!/,
   // everything fine
   allgood = /^\/\*/,
+  // external url
+  external = /^\/%3C%3C%3C/,
   // strip out beginning of this file and server related stuff
   fn = /^#[^\n\r]+|\/\*(server)[^\x00]*?\1\*\//g
 ;
+
+function emptyPage(response, exit) {
+  response.writeHead(200, html);
+  response.end('');
+  if (exit) {
+    process.nextTick(process.exit.bind(process, 0));
+  }
+}
 
 // the proxy server
 function server(req, response){
@@ -345,6 +464,7 @@ function server(req, response){
       '<script>', fs.readFileSync(__filename, 'utf-8').toString().replace(fn, ''), EOL,
         '$.tests=', JSON.stringify(tests), ';', EOL,
         '$.timeout=', TIMEOUT, ';', EOL,
+        '$.loop=', !DONT_LOOP,
       ';</script>',
       '<script>document.write(',
         '"<iframe src=\\"" + ',
@@ -357,6 +477,9 @@ function server(req, response){
   } else if(error.test(req.url)) {
     var body = JSON.parse(unescape(req.url.slice(2))).join(EOL);
     process.stderr.write(body);
+    // in case there is an email notification
+    // it stops the process so no spam will occur
+    emptyPage(response, EMAIL ? true : DONT_LOOP);
     if (EMAIL) {
       var mail = require('child_process').spawn('mail', [
         '-s',
@@ -380,14 +503,14 @@ function server(req, response){
       mail.stdin.write(
         body, null, mail.stdin.end.bind(mail.stdin)
       );
-    } else {
-      process.exit(1);
     }
-  } else if(allgood.test(req.url)) {
-    response.writeHead(200, html);
-    response.end('');
-    // console.log('[OK] ' + req.headers['user-agent']);
-    // process.nextTick(process.exit.bind(process, 0));
+  } else if(allgood.test(req.url)) {  
+    console.log('[OK] ' + req.headers['user-agent']);
+    emptyPage(response, DONT_LOOP);
+  } else if(external.test(req.url)) {
+    http.get(require('url').parse(
+      decodeURIComponent(req.url.slice(10))
+    ), onload).response = response;
   } else {
     options.path = req.url;
     options.headers = req.headers;
@@ -417,6 +540,6 @@ function server(req, response){
     show.push('');
     process.stdout.write(show.join('\n'));
   });
-})();
+}());
 
 //server*/
