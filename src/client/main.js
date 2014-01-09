@@ -52,14 +52,11 @@ this.$ = function(global) {
     alert([message, lineno, filename].join('\n'));
   }
   function error(e) {
-    var message;
-    if (e instanceof Error) {
-      message = e.message + (
-        e.stack ? '\n' + e.stack : ''
-      );
-    }
+    var message = e.message || 'ERROR';
     showResult(message);
-    sandbox.error(message);
+    sandbox.error(message + (
+      e.stack ? '\n' + e.stack : ''
+    ));
   }
   function onload() {
     iframe.onload = onUncaughtLoad;

@@ -10,10 +10,15 @@ module.exports = function (sandbox, window, document) {
         // inject from external domain
         sandbox.loadFromDifferentDomain(href).then(sandbox.done);
       };
-      sandbox.dispatch(
-        sandbox.query('form button[type=submit]'),
-        'click'
-      );
+      var node = sandbox.query('form button[type=submit]');
+      if (node) {
+        sandbox.dispatch(
+          node,
+          'click'
+        );
+      } else {
+        sandbox.query('form').submit();
+      }
     }
   );
 };

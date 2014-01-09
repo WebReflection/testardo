@@ -84,14 +84,9 @@ this.$ = function(global) {
     alert([message, lineno, filename].join('\n'));
   }
   function error(e) {
-    /*
-    console.log(e);
-    alert(e.target);
-    alert(window.error);
-    alert(Object.keys(e));
-    */
-    showResult(e.stack || e.message || 'ERROR');
-    sandbox.error(e.message + (
+    var message = e.message || 'ERROR';
+    showResult(message);
+    sandbox.error(message + (
       e.stack ? '\n' + e.stack : ''
     ));
   }
@@ -132,8 +127,8 @@ this.$ = function(global) {
       }.call(context = {}));
       queryAll = context.qwery;
     }
-    window.addEventListener('error', error, true);
     window.onerror = onerror;
+    window.addEventListener('error', error, true);
   }
   function XHR() {
     return global.XMLHttpRequest ?
