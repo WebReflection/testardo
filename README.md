@@ -21,6 +21,12 @@ As long as your Mac/Linux machine is reachable through the same network there's 
 
 If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file, or launch `./testardo` without arguments in your console.
 
+#### Example
+A very basic example is shown in [this file](examples/google-search.js).
+
+Write `./testardo --host=74.125.239.35 --loop=0 examples/google-search.js` and connect to the full url shown in the terminal.
+This will look something like: `en1: http://192.168.1.146:7357/$` where the full url to connect to will be `http://192.168.1.146:7357/$`
+
 
 ### compatibility
 So far, _testardo_ has been tested with the following browsers:
