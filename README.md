@@ -3,6 +3,9 @@ testardo
   a browser and OS agnostic web driver for mobile and desktop
 
 
+Please note this software is at a very basic state ... like a beta version `0.0.5` one.
+
+
 ### in a nutshell
 Bored to death to swipe around in order to be sure device X still work? If so, give _testardo_ a chance!
 
@@ -16,7 +19,7 @@ To use _testardo_ ... all you need is the [testardo](build/testardo) file. Grab 
 The executable will create a testing environment showing the URL to load through your device browser.
 As long as your Mac/Linux machine is reachable through the same network there's really nothing else to do.
 
-If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file.
+If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file, or launch `./testardo` without arguments in your console.
 
 
 ### compatibility
@@ -28,9 +31,8 @@ So far, _testardo_ has been tested with the following browsers:
   * Firefox OS 1.0 and greater
   * Android 2.3 and greater
   * iOS 7
-  *
 
-Above list will change as soon as new devices will be tested.
+Above list will change as soon as new devices will be tested. Ideally old IE browsers should work too (at some point).
 
 
 ### why
