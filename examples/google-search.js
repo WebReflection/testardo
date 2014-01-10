@@ -12,6 +12,7 @@ module.exports = {
           // inject from external domain
           sandbox.loadFromDifferentDomain(href).then(sandbox.done);
         };
+        //throw new Error('OK, this should make everything RED');
         var node = sandbox.query('form button[type=submit]');
         if (node) {
           sandbox.dispatch(node, 'click');

@@ -21,6 +21,7 @@ setTimeout(function test() {
   // then keep testing 'till the end
   function error(message) {
     errors.push(message);
+    tests = [];
     test();
   }
   var // one test per time
@@ -79,8 +80,7 @@ setTimeout(function test() {
         }
         // setup the timeout using the specified one in the test or the global
         timer = setTimeout(error, module.exports.timeout || TIMEOUT, 'Expired');
-        // invoke the test with same sandbox.load arguments
-        module.exports.test.apply(module.exports, arguments);
+        createCallbackWrap(module.exports.test).apply(module.exports, arguments);
       });
     } catch(o_O) {
       // if something went wrong, store the message/error
@@ -115,4 +115,4 @@ setTimeout(function test() {
     // in any case show the green status
     showResult('OK');
   }
-}, 100);
+}, COMMON_DELAY);

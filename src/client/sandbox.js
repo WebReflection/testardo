@@ -132,8 +132,8 @@ var
           }
           if (i === chars.length - 1) {
             setTimeout(
-              callback || lastCallback,
-              100, sandbox, window, document
+              createCallbackWrap(callback || lastCallback),
+              COMMON_DELAY * 3, sandbox, window, document
             );
           }
           evt = {};
@@ -143,7 +143,7 @@ var
         chars = text.split(''),
         i = 0; i < chars.length; i++
       ) {
-        setTimeout(put, i * 100, i);
+        setTimeout(put, i * COMMON_DELAY, i);
       }
       lastAction = 'write';
       return sandbox;

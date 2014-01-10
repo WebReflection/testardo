@@ -1,3 +1,5 @@
 src/*
+examples/*
 Makefile
 index.html
+README.md

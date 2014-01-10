@@ -1,6 +1,7 @@
 // --- INTERNAL USE ONLY ---
 
 var
+  COMMON_DELAY = 100,
   // use native selector or not ?
   NATIVE_SELECTOR = !!global.document.querySelectorAll,
   // try to understand the current page width
@@ -34,7 +35,10 @@ function addIframeOnLoad(callback) {
       // update all references first
       onload();
       // then invoke the test after a little while
-      setTimeout(callback, 100, sandbox, window, document);
+      setTimeout(
+        createCallbackWrap(callback), COMMON_DELAY,
+        sandbox, window, document
+      );
     } :
     // otherwise it just update references
     onload
@@ -64,6 +68,19 @@ function createEvent(type) {
   return e;
 }
 
+// every callback should be wrapped in a try/catch
+// specially for very old devices (webOS, Android 2.3)
+// where global error won't be triggered
+function createCallbackWrap(callback) {
+  return function(sandbox, window, document) {
+    try {
+      callback(sandbox, window, document);
+    } catch(o_O) {
+      error(o_O);
+    }
+  };
+}
+
 // simplifies an event dispatch
 function dispatch(node, evt) {
   if ('dispatchEvent' in node) {
@@ -82,6 +99,8 @@ function dispatch(node, evt) {
 // what to do when an error occurres
 function error(e) {
   var message = e.message || 'ERROR';
+  removeListener(window, 'error', error, onerror);
+  removeListener(global, 'error', error, onerror);
   showResult(message);
   sandbox.error(message + (
     e.stack ? '\n' + e.stack : ''
@@ -129,7 +148,7 @@ function onUncaughtLoad() {
     // invoke it later on
     setTimeout(function () {
       onload.call(sandbox, sandbox, window, document);
-    }, 100);
+    }, COMMON_DELAY);
   }
 }
 
@@ -139,11 +158,28 @@ function preventDefault() {
   this.defaultPrevented = true;
 }
 
+// shortcut to remove error listener/handler in both old browsers and modern
+function removeListener(where, which, what, lvl0) {
+  if ('removeEventListener' in where) {
+    where.removeEventListener(which, what, true);
+  } else {
+    where.detachEvent('on' + where, which);
+  }
+  where['on' + which] = null;
+}
+
 // show a big green or red page accordingly with tests result
 function showResult(text) {
-  var html = document.documentElement;
+  var
+    innerHTML = '<center><b>' + text + '</b></center>',
+    html
+  ;
+  try {
+    (html = global.document.documentElement).innerHTML = innerHTML;
+  } catch(probablyIE9Mobile) {
+    (html = document.body).innerHTML = innerHTML;
+  }
   html.style.background = text == 'OK' ? '#0F0' : '#F00';
-  html.innerHTML = '<center><b>' + text + '</b></center>';
 }
 
 // simulate the Event#stopPropagation method in old browser

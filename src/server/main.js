@@ -139,8 +139,8 @@ function server(req, response){
       );
     }
   } else if(allgood.test(req.url)) {
-    // show the success in the terminal
-    console.log('[OK] ' + req.headers['user-agent']);
+    // TODO: show the success in the terminal ?
+    // console.log('[OK] ' + req.headers['user-agent']);
     // release the request and eventually exit
     emptyPage(response, DONT_LOOP);
   } else if(external.test(req.url)) {
