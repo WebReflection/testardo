@@ -3,7 +3,7 @@ testardo
   a browser and OS agnostic web driver for mobile and desktop
 
 
-Please note this software is at a very basic state ... like a beta version `0.0.5` one.
+Please note this software is at a very basic state ... like a beta version `0.0.6` one.
 
 
 ### in a nutshell
@@ -31,12 +31,13 @@ This will look something like: `en1: http://192.168.1.146:7357/$` where the full
 ### compatibility
 So far, _testardo_ has been tested with the following browsers:
 
-  * webOS (the one for the old palm pre, not yet LG TVs)
+  * iOS 5.1 and greater
+  * Android 2.3 and greater
+  * Firefox OS 1.0 and greater
   * Windows Phone 7 and greater
   * Blackberry 10
-  * Firefox OS 1.0 and greater
-  * Android 2.3 and greater
-  * iOS 7
+  * Kindle Fire Silk
+  * webOS (the one for the old palm pre, not yet LG TVs)
 
 Above list will change as soon as new devices will be tested. Ideally old IE browsers should work too (at some point).
 

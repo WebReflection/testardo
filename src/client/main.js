@@ -52,7 +52,9 @@ function addListener(where, which, what, lvl0) {
   } else {
     where.attachEvent('on' + where, which);
   }
-  where['on' + which] = lvl0 || what;
+  if (lvl0) {
+    where['on' + which] = lvl0;
+  }
 }
 
 // simplifies the creation of a generic event
@@ -165,7 +167,9 @@ function removeListener(where, which, what, lvl0) {
   } else {
     where.detachEvent('on' + where, which);
   }
-  where['on' + which] = null;
+  if (lvl0) {
+    where['on' + which] = null;
+  }
 }
 
 // show a big green or red page accordingly with tests result

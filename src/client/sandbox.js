@@ -70,6 +70,33 @@ var
       lastAction = 'load';
       return sandbox;
     },
+    // exposes some useful info about the navigator
+    navigator: {
+      // the device kind (iPad, iPod, iPhone, Silk, Android, IEMobile)
+      kind: /\b(Android|Asha|IEMobile|iP(?:ad|od|hone)|Silk)\b/.test(navigator.userAgent) ? RegExp.$1 : 'unknown',
+      // the OS version
+      // https://gist.github.com/WebReflection/7107617#file-navigator-version-js
+      version: /(?:(?:OS(?: X)?|Android|Windows(?: NT)) |(?:IEMobile|Version|webOS|Nokia\w+)\/)(\d+)[_.](\d+)(?:[_.](\d+(?:\.\d+)?))?/.test(navigator.userAgent) ?
+        {
+          major: RegExp.$1,
+          minor: RegExp.$2 || '0',
+          revision: (RegExp.$3 || '0').replace(/^0\./, ''),
+          valueOf: function () {
+            return this.major;
+          }
+        } :
+        {}
+    },
+    // simplifies removeEventListener/detachEvent operation
+    // note: it does not fix all edge cases, use external libraries for this
+    off: function (nodeOrQuery, type, callback) {
+      removeListener(getNode(nodeOrQuery), type, callback);
+    },
+    // simplifies addEventListener/attachEvent operation
+    // note: it does not fix all edge cases, use external libraries for this
+    on: function (nodeOrQuery, type, callback) {
+      addListener(getNode(nodeOrQuery), type, callback);
+    },
     // returns first found element or undefined
     // sb.query("div.cname", optionalParentNode);
     query: function (css, parent) {
