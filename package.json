@@ -1,7 +1,7 @@
 {
   "name": "testardo",
   "version": "0.0.5",
-  "description": "coming soon",
+  "description": "a browser and OS agnostic web driver for mobile and desktop",
   "main": "./build/testardo",
   "bin": {
     "testardo": "./build/testardo"
@@ -19,6 +19,7 @@
     "integration",
     "agnostic",
     "mobile",
+    "desktop",
     "browser"
   ],
   "author": "Andrea Giammarchi",
