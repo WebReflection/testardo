@@ -11,13 +11,12 @@ You can be notified if something goes wrong, you can change tests at runtime and
 
 
 ### how to
-To use _testardo_ ... all you need is the [build/testardo] file. Grab it or simply install it via `npm install -g testardo`.
+To use _testardo_ ... all you need is the [testardo](build/testardo) file. Grab it or simply install it via `npm install -g testardo`.
 
 The executable will create a testing environment showing the URL to load through your device browser.
-
 As long as your Mac/Linux machine is reachable through the same network there's really nothing else to do.
 
-If you want to have an idea of _testardo_ options at launch time, please check [src/server/how-to.js] file.
+If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file.
 
 
 ### compatibility
