@@ -28,7 +28,9 @@ process.argv.slice(2).forEach(function(arg){
   // set the environment option, if present
   if (this.re.test(arg)) {
     // fake constant like bash exported variables
-    process.env[RegExp.$1.toUpperCase()] = RegExp.$3 || 1;
+    process.env[
+      RegExp.$1.toUpperCase().replace(this.dash, '_')
+    ] = RegExp.$3 || 1;
     // if --anyarg has no value it will be truthy by default
     // i.e. ./testardo --loop proj/test.js
   }
@@ -42,6 +44,7 @@ process.argv.slice(2).forEach(function(arg){
     }
   }
 }, {
+  dash: /-/g,
   re: /--([^=]+?)(=([^\x00]+))?$/,
   // used to filter valid tests ... right now .js files only
   filter: function (name) {

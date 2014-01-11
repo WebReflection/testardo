@@ -20,6 +20,7 @@ var // dependencies
   TIMEOUT = Math.max(0, parseInt(process.env.TIMEOUT || 0, 10)) || 30000,
   // should it loop forever or not ?
   DONT_LOOP = /^false|0$/.test(process.env.LOOP || 1),
+  SHOW_SUCCESS = /^true|1$/.test(process.env['SHOW_SUCCESS']),
   // who should be notified in case of failure ?
   // note:  this might affect DONT_LOOP too in order to avoid
   //        multiple/reduntant emails for the same error and the same failure
@@ -35,6 +36,9 @@ var // dependencies
   },
   // recycled headers for entry page
   html = {"Content-Type": "text/html"},
+
+  // all UA that failed the test
+  failures = Object.create(null),
 
   // what to do once loaded
   onload = function(response) {
@@ -75,8 +79,48 @@ function emptyPage(response, exit) {
   }
 }
 
+// sends an email with error or FIXED! info
+function sendEmail(body) {
+  // note: be sure mail is configured properly
+  // send an email with all possible infos
+  var mail = require('child_process').spawn('mail', [
+    '-s',
+    '[testardo] ' + FULL_HOST,
+    EMAIL
+  ], {
+    cwd: process.cwd(),
+    env: process.env,
+    detached: true,
+    stdio: [
+      'pipe', 'pipe', 'pipe'
+    ]
+  });
+  // what to do once the email has been sent
+  mail.on('close', function(code) {
+    // show something in the console
+    if (code) {
+      console.log('[WARNING] unable to send email via ' + EMAIL);
+    } else if (SHOW_SUCCESS) {
+      console.log('notification sent to ' + EMAIL);
+    }
+    // in case it should not loop ...
+    if (DONT_LOOP) {
+      // ... simply exit
+      process.exit(1);
+    }
+  });
+  // detach this process ...
+  mail.unref();
+  // ... and write the content
+  mail.stdin.write(
+    body, null, mail.stdin.end.bind(mail.stdin)
+  );
+}
+
 // the server callback, invoked per each request
 function server(req, response){
+  var UA = req.headers['user-agent'],
+      body, mail;
   // root page will create the `testardo` environment for the client browser
   if (main.test(req.url)) {
     response.writeHead(200, html);
@@ -104,45 +148,44 @@ function server(req, response){
       ')</script>'
     ));
   } else if(error.test(req.url)) {
-    // somethong went wrong ... grab sent info
-    var body = JSON.parse(unescape(req.url.slice(2))).join(EOL);
+    // something went wrong ... grab sent info
+    body = JSON.parse(unescape(req.url.slice(2))).join(EOL);
     // send them to the stderr
     process.stderr.write(body);
     // new line for cleaner terminal output
     console.log(EOL);
     // in case there is an email notification
-    // it stops the process so no spam will occur
-    emptyPage(response, EMAIL ? true : DONT_LOOP);
-    if (EMAIL) {
-      // be sure mail is configured properly
-      var mail = require('child_process').spawn('mail', [
-        '-s',
-        '[testardo] ' + FULL_HOST,
-        EMAIL
-      ], {
-        cwd: process.cwd(),
-        env: process.env,
-        detached: true,
-        stdio: [
-          'pipe', 'pipe', 'pipe'
-        ]
-      })
-        .on(
-          'close',
-          // always exit with code 1
-          process.exit.bind(process, 1)
-        )
-      ;
-      mail.unref();
-      mail.stdin.write(
-        body, null, mail.stdin.end.bind(mail.stdin)
-      );
+    // and it has not been nitified already
+    if (EMAIL && !failures[UA]) {
+      // flag the UA as already notified
+      failures[UA] = true;
+      // release the browser, do not exit now regardless
+      emptyPage(response, false);
+      // send the email with the error
+      sendEmail(body);
+      // sendEmail will eventually exit after
+    } else {
+      // no email to send, keep testing
+      emptyPage(response, DONT_LOOP);
     }
   } else if(allgood.test(req.url)) {
-    // TODO: show the success in the terminal ?
-    // console.log('[OK] ' + req.headers['user-agent']);
-    // release the request and eventually exit
-    emptyPage(response, DONT_LOOP);
+    // eventually show which UA made it
+    if (SHOW_SUCCESS) {
+      console.log('[OK] ' + UA);
+    }
+    // tests are fixed now, or it was a flakey one
+    // send a "green" email if necessary
+    if (EMAIL && failures[UA]) {
+      // clean current UA
+      delete failures[UA];
+      // release the browser, do not exit now
+      emptyPage(response, false);
+      // send the email with the achievement
+      sendEmail('FIXED!');
+    } else {
+      // release the request and eventually exit
+      emptyPage(response, DONT_LOOP);
+    }
   } else if(external.test(req.url)) {
     // requesting an external URL or library
     // TODO:  think about caching these requests on the server too

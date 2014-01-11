@@ -79,32 +79,15 @@ setTimeout(function test() {
           html.removeChild(script);
         }
         // setup the timeout using the specified one in the test or the global
-        timer = setTimeout(error, module.exports.timeout || TIMEOUT, 'Expired');
+        timer = setTimeout(onerror, module.exports.timeout || TIMEOUT, 'Expired', '?', lastFile);
         createCallbackWrap(module.exports.test).apply(module.exports, arguments);
       });
     } catch(o_O) {
       // if something went wrong, store the message/error
       error(o_O.message);
     }
-  } else if(errors.length) {
-    // no more tests but there was one or more errors
-    // send all known info to the server
-    // TODO:  improve this part either exiting at first error
-    //        or directly storing all known info per each error
-    xhr.open('GET', '!' + escape(
-      JSON.stringify(
-        [
-          '[file] ' + lastFile,
-          '[user] ' + navigator.userAgent
-        ].concat(errors)
-      )
-    ), false);
-    xhr.send(null);
   } else {
-    // everything OK, tell the server we are good
-    xhr.open('GET', '*' + new Date * 1, false);
-    xhr.send(null);
-    // if necessary ...
+    // if necessary ... no matter if it was error or not ...
     if (LOOP) {
       // run again the test one more time
       // after TIMEOUT milliseconds
@@ -112,7 +95,26 @@ setTimeout(function test() {
         top.location.reload();
       }, TIMEOUT);
     }
-    // in any case show the green status
-    showResult('OK');
+    if(errors.length) {
+      // no more tests but there was one or more errors
+      // send all known info to the server
+      // TODO:  improve this part either exiting at first error
+      //        or directly storing all known info per each error
+      xhr.open('GET', '!' + escape(
+        JSON.stringify(
+          [
+            '[file] ' + lastFile,
+            '[user] ' + navigator.userAgent
+          ].concat(errors)
+        )
+      ), false);
+      xhr.send(null);
+    } else {
+      // show the green status
+      showResult('OK');
+      // everything OK, tell the server we are good
+      xhr.open('GET', '*' + new Date * 1, false);
+      xhr.send(null);
+    }
   }
 }, COMMON_DELAY);
