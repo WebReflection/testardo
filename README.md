@@ -29,7 +29,7 @@ This will look something like: `en1: http://192.168.1.146:7357/$` where the full
 
 
 ### compatibility
-So far, _testardo_ has been tested with the following browsers:
+So far, _testardo_ has been tested with the following **Mobile** browsers:
 
   * iOS 5.1 and greater
   * Android 2.3 and greater
@@ -39,7 +39,16 @@ So far, _testardo_ has been tested with the following browsers:
   * Kindle Fire Silk
   * webOS (the one for the old palm pre, not yet LG TVs)
 
-Above list will change as soon as new devices will be tested. Ideally old IE browsers should work too (at some point).
+Above list will change as soon as new devices will be tested.
+
+The list of compatible and tested **Desktop** browsers:
+
+  * Chrome
+  * Safari
+
+Above list will change as soon as different browsers will be tested.
+
+Ideally old IE browsers should work too (at some point).
 
 
 ### why
