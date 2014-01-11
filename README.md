@@ -58,3 +58,13 @@ Selenium is cool but there's no selenium for platforms different from Android an
 This makes integration tests extremely painful for all other phones, both newer and older.
 
 _testardo_ would like to simplify one-shot or infinitely repeated integration tests with any browser you would like to test.
+
+
+### TODO
+
+  * https and SSL compatibility
+  * more sandbox shortcuts/utilities
+  * more Desktop browsers to test
+  * more Mobile devices too
+
+Any help will be more than appreciated.
