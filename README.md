@@ -10,7 +10,9 @@ Please note this software is at a very basic state ... like a beta version `0.0.
 Bored to death to swipe around in order to be sure device X still work? If so, give _testardo_ a chance!
 
 _testardo_ is the easiest way to test your local projects with some remote service testing capabilities too.
-You can be notified if something goes wrong, you can change tests at runtime and have an instant update for all running devices, you can forget SDK, special softwares, drivers, patches and fixes ... you create the test with everything you know and need already with the ability to include libraries and utilities at runtime.
+You can be notified if something goes wrong, you can change tests at runtime and have an instant update for all running devices, you can forget SDKs, special softwares, drivers, patches and fixes ... you create the test with everything you know and need already with the ability to include libraries and utilities at runtime.
+
+**testardo** will be instantly useful thanks to its status colors on any device display: green for success, yellow if the server is offline, red when there was an error and with shown error info ... as easy as that!
 
 
 ### how to

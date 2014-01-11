@@ -201,27 +201,48 @@ function onerror(message, lineno, filename) {
   });
 }
 
+// returns true if the server stopped
+function online() {
+  var xhr;
+  try {
+    xhr = XHR();
+    xhr.open('HEAD', '/$?' + [+new Date, Math.random()].join(''), false);
+    xhr.send(null);
+  } catch(e) {
+    xhr = {};
+  }
+  return xhr.status == 200 || !!showResult('offline');
+}
+
 // every time a test or a new page is loaded
 function onload() {
-  // prepare the frame to catch wild refresh or operations
-  iframe.onload = onUncaughtLoad;
-  // update all scope shared references (window, document)
-  updateReferences();
+  if (online()) {
+    // prepare the frame to catch wild refresh or operations
+    iframe.onload = onUncaughtLoad;
+    // update all scope shared references (window, document)
+    updateReferences();
+  } else {
+    reloadIfItIsOnline();
+  }
 }
 
 // invoked in the wild when uncougt reload occurres
 function onUncaughtLoad() {
-  // if there was already an onload
-  var onload = sandbox.onload;
-  // store and drop it
-  sandbox.onload = null;
-  // most important part
-  updateReferences();
-  if (onload) {
-    // invoke it later on
-    setTimeout(function () {
-      onload.call(sandbox, sandbox, window, document);
-    }, COMMON_DELAY);
+  if (online()) {
+    // if there was already an onload
+    var onload = sandbox.onload;
+    // store and drop it
+    sandbox.onload = null;
+    // most important part
+    updateReferences();
+    if (onload) {
+      // invoke it later on
+      setTimeout(function () {
+        onload.call(sandbox, sandbox, window, document);
+      }, COMMON_DELAY);
+    }
+  } else {
+    reloadIfItIsOnline();
   }
 }
 
@@ -229,6 +250,19 @@ function onUncaughtLoad() {
 function preventDefault() {
   this.returnValue = false;
   this.defaultPrevented = true;
+}
+
+// restart the test if online at TIMEOUT time
+function reloadIfItIsOnline() {
+  // run again the test one more time
+  // after TIMEOUT milliseconds
+  return setTimeout(function reload(){
+    if (online()) {
+      global.location.reload();
+    } else {
+      setTimeout(reload, TIMEOUT);
+    }
+  }, TIMEOUT);
 }
 
 // shortcut to remove error listener/handler in both old browsers and modern
@@ -254,7 +288,9 @@ function showResult(text) {
   } catch(probablyIE9Mobile) {
     (html = document.body).innerHTML = innerHTML;
   }
-  html.style.background = text == 'OK' ? '#0F0' : '#F00';
+  html.style.background = text == 'OK' ? '#0F0' : (
+    text === 'offline' ? '#FF0' : '#F00'
+  );
 }
 
 // simulate the Event#stopPropagation method in old browser
@@ -573,13 +609,9 @@ setTimeout(function test() {
   } else {
     // if necessary ... no matter if it was error or not ...
     if (LOOP) {
-      // run again the test one more time
-      // after TIMEOUT milliseconds
-      setTimeout(function(){
-        top.location.reload();
-      }, TIMEOUT);
+      reloadIfItIsOnline();
     }
-    if(errors.length) {
+    if(errors.length && online()) {
       // no more tests but there was one or more errors
       // send all known info to the server
       // TODO:  improve this part either exiting at first error
@@ -596,9 +628,11 @@ setTimeout(function test() {
     } else {
       // show the green status
       showResult('OK');
-      // everything OK, tell the server we are good
-      xhr.open('GET', '*' + new Date * 1, false);
-      xhr.send(null);
+      // everything OK, tell the server, if presemt, we are good
+      if (online()) {
+        xhr.open('GET', '*' + new Date * 1, false);
+        xhr.send(null);
+      }
     }
   }
 }, COMMON_DELAY);
@@ -831,7 +865,7 @@ function server(req, response){
   // root page will create the `testardo` environment for the client browser
   if (main.test(req.url)) {
     response.writeHead(200, html);
-    response.end('<!DOCTYPE html>'.concat(
+    response.end(req.method == 'HEAD' ? '' : '<!DOCTYPE html>'.concat(
       '<title>testardo@', FULL_HOST, '</title>',
       '<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">',
       '<style>*{zoom:1;border:0;margin:0;padding:0;width:100%;height:100%;font-size:0;line-height:0;}</style>',

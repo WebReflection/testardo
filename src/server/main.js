@@ -124,7 +124,7 @@ function server(req, response){
   // root page will create the `testardo` environment for the client browser
   if (main.test(req.url)) {
     response.writeHead(200, html);
-    response.end('<!DOCTYPE html>'.concat(
+    response.end(req.method == 'HEAD' ? '' : '<!DOCTYPE html>'.concat(
       '<title>testardo@', FULL_HOST, '</title>',
       '<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">',
       '<style>*{zoom:1;border:0;margin:0;padding:0;width:100%;height:100%;font-size:0;line-height:0;}</style>',

@@ -130,27 +130,48 @@ function onerror(message, lineno, filename) {
   });
 }
 
+// returns true if the server stopped
+function online() {
+  var xhr;
+  try {
+    xhr = XHR();
+    xhr.open('HEAD', '/$?' + [+new Date, Math.random()].join(''), false);
+    xhr.send(null);
+  } catch(e) {
+    xhr = {};
+  }
+  return xhr.status == 200 || !!showResult('offline');
+}
+
 // every time a test or a new page is loaded
 function onload() {
-  // prepare the frame to catch wild refresh or operations
-  iframe.onload = onUncaughtLoad;
-  // update all scope shared references (window, document)
-  updateReferences();
+  if (online()) {
+    // prepare the frame to catch wild refresh or operations
+    iframe.onload = onUncaughtLoad;
+    // update all scope shared references (window, document)
+    updateReferences();
+  } else {
+    reloadIfItIsOnline();
+  }
 }
 
 // invoked in the wild when uncougt reload occurres
 function onUncaughtLoad() {
-  // if there was already an onload
-  var onload = sandbox.onload;
-  // store and drop it
-  sandbox.onload = null;
-  // most important part
-  updateReferences();
-  if (onload) {
-    // invoke it later on
-    setTimeout(function () {
-      onload.call(sandbox, sandbox, window, document);
-    }, COMMON_DELAY);
+  if (online()) {
+    // if there was already an onload
+    var onload = sandbox.onload;
+    // store and drop it
+    sandbox.onload = null;
+    // most important part
+    updateReferences();
+    if (onload) {
+      // invoke it later on
+      setTimeout(function () {
+        onload.call(sandbox, sandbox, window, document);
+      }, COMMON_DELAY);
+    }
+  } else {
+    reloadIfItIsOnline();
   }
 }
 
@@ -158,6 +179,19 @@ function onUncaughtLoad() {
 function preventDefault() {
   this.returnValue = false;
   this.defaultPrevented = true;
+}
+
+// restart the test if online at TIMEOUT time
+function reloadIfItIsOnline() {
+  // run again the test one more time
+  // after TIMEOUT milliseconds
+  return setTimeout(function reload(){
+    if (online()) {
+      global.location.reload();
+    } else {
+      setTimeout(reload, TIMEOUT);
+    }
+  }, TIMEOUT);
 }
 
 // shortcut to remove error listener/handler in both old browsers and modern
@@ -183,7 +217,9 @@ function showResult(text) {
   } catch(probablyIE9Mobile) {
     (html = document.body).innerHTML = innerHTML;
   }
-  html.style.background = text == 'OK' ? '#0F0' : '#F00';
+  html.style.background = text == 'OK' ? '#0F0' : (
+    text === 'offline' ? '#FF0' : '#F00'
+  );
 }
 
 // simulate the Event#stopPropagation method in old browser

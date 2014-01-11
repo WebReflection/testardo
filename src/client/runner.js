@@ -89,13 +89,9 @@ setTimeout(function test() {
   } else {
     // if necessary ... no matter if it was error or not ...
     if (LOOP) {
-      // run again the test one more time
-      // after TIMEOUT milliseconds
-      setTimeout(function(){
-        top.location.reload();
-      }, TIMEOUT);
+      reloadIfItIsOnline();
     }
-    if(errors.length) {
+    if(errors.length && online()) {
       // no more tests but there was one or more errors
       // send all known info to the server
       // TODO:  improve this part either exiting at first error
@@ -112,9 +108,11 @@ setTimeout(function test() {
     } else {
       // show the green status
       showResult('OK');
-      // everything OK, tell the server we are good
-      xhr.open('GET', '*' + new Date * 1, false);
-      xhr.send(null);
+      // everything OK, tell the server, if presemt, we are good
+      if (online()) {
+        xhr.open('GET', '*' + new Date * 1, false);
+        xhr.send(null);
+      }
     }
   }
 }, COMMON_DELAY);
