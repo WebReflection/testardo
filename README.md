@@ -3,7 +3,7 @@ testardo
   a browser and OS agnostic web driver for mobile and desktop
 
 
-Please note this software is at a very basic state ... like a beta version `0.0.7` one.
+Please note this software is at a very basic state ... like a beta version `0.0.9` one.
 
 
 ### in a nutshell

@@ -5,7 +5,6 @@ module.exports = {
     // simulate a user search
     sandbox.write('input[name=q]', 'hello world').then(
       function(sandbox, window, document){
-// throw new Error('some problem');
         // prepare for the next page on submit
         sandbox.onload = function(sandbox, window, document) {
           var href = sandbox.query(
