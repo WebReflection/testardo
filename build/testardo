@@ -384,7 +384,7 @@ var
               reset ? 0 : (+new Date) + (params.expires || 1) * 86400000
             )
           ).toUTCString(),
-          'path=' + params.path || '/'
+          'path=' + (params.path || '/')
         ].join('; ');
       }
     },
