@@ -348,6 +348,19 @@ iframe.style.width = WIDTH + 'px';
 
 var
   sandbox = {
+    // a very simple assertion shortcut
+    // sb.assert(condition, 'one', 'or more messages');
+    assert: function assert(condition) {
+      if (!condition) {
+        throw new Error(
+          // show the message
+          [].slice.call(arguments, 1).join(' ') ||
+          // or the caller that failed
+          ('' + assert.caller)
+        );
+      }
+      return condition;
+    },
     // simplifies getting/setting cookies
     // sb.cookie(key)           // get the value
     //
