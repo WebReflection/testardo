@@ -3,9 +3,6 @@ testardo
   a browser and OS agnostic web driver for mobile and desktop
 
 
-Please note this software is at a very basic state ... like a beta version `0.0.9` one.
-
-
 ### in a nutshell
 Bored to death to swipe around in order to be sure device X still work? If so, give _testardo_ a chance!
 
@@ -26,7 +23,7 @@ If you want to have an idea of _testardo_ options at launch time, please check t
 #### Example
 A very basic example is shown in [this file](examples/google-search.js).
 
-Write `./testardo --host=74.125.239.35 --loop=0 examples/google-search.js` and connect to the full url shown in the terminal.
+Write `./testardo --host=google.com --loop=0 examples/google-search.js` and connect to the full url shown in the terminal.
 This will look something like: `en1: http://192.168.1.146:7357/$` where the full url to connect to will be `http://192.168.1.146:7357/$`
 
 

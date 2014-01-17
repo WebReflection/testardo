@@ -1,6 +1,13 @@
 module.exports = {
+
+  // loading external library before test, example:
   // external: ['http://code.jquery.com/jquery-2.0.3.js'], // i.e. jQuery
+
+  // the test to run
   test: function (sandbox, window, document) {
+
+    // try to set first argument as false to see the result
+    sandbox.assert(true, 'this is just fine');
 
     // simulate a user search
     sandbox.write('input[name=q]', 'hello world').then(
