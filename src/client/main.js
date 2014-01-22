@@ -1,6 +1,7 @@
 // --- INTERNAL USE ONLY ---
 
 var
+  global = this,
   COMMON_DELAY = 100,
   // use native selector or not ?
   NATIVE_SELECTOR = !!global.document.querySelectorAll,

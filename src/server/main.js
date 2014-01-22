@@ -128,6 +128,7 @@ function server(req, response){
       '<title>testardo@', FULL_HOST, '</title>',
       '<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">',
       '<style>*{zoom:1;border:0;margin:0;padding:0;width:100%;height:100%;font-size:0;line-height:0;}</style>',
+      '<iframe src="about:blank"></iframe>',
       // it includes `testardo` itself to offer a zero-config solution
       '<script>', fs.readFileSync(__filename, 'utf-8').toString().replace(fn, ''), EOL,
         // pre fetch all tests for the browser
@@ -135,17 +136,10 @@ function server(req, response){
         // specify the global timeout
         '$.timeout=', TIMEOUT, ';', EOL,
         // specify if it should loop forever
-        '$.loop=', !DONT_LOOP,
-      ';</script>',
-      // create the iframe without special chars
-      '<script>document.write(',
-        '"<iframe src=\\"" + ',
-          'location.href.split("$").join("")',
-        ' + "\\" onload=\\"',
-          // initialize testardo on the client side
-          '$(window)',
-        '\\"></iframe>"',
-      ')</script>'
+        '$.loop=', !DONT_LOOP, ';', EOL,
+        // initialize testardo on the client side
+        'this.onload=$;',
+      '</script>'
     ));
   } else if(error.test(req.url)) {
     // something went wrong ... grab sent info

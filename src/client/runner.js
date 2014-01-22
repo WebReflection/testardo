@@ -15,6 +15,8 @@ var
 
 // remove traces of this function in the global scope
 delete global.$;
+// also drop the previously set onload
+global.onload = global.$;
 
 setTimeout(function test() {
   // keeps running tests if possible

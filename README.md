@@ -20,11 +20,14 @@ As long as your Mac/Linux machine is reachable through the same network there's 
 
 If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file, or launch `./testardo` without arguments in your console.
 
-#### Example
+#### example
 A very basic example is shown in [this file](examples/google-search.js).
 
 Write `./testardo --host=google.com --loop=0 examples/google-search.js` and connect to the full url shown in the terminal.
 This will look something like: `en1: http://192.168.1.146:7357/$` where the full url to connect to will be `http://192.168.1.146:7357/$`
+
+#### original post + live demo
+If you want to know more and see a video about _testardo_ feel free to reach [the original post in my blog](http://webreflection.blogspot.com/2014/01/testardo-browser-agnostic-js-web-driver.html)
 
 
 ### compatibility
@@ -32,6 +35,7 @@ So far, _testardo_ has been tested with the following **Mobile** browsers:
 
   * iOS 5.1 and greater
   * Android 2.3 and greater
+  * Opera Mobile Classic
   * Firefox OS 1.0 and greater
   * Windows Phone 7 and greater
   * Blackberry 10
@@ -43,6 +47,8 @@ Above list will change as soon as new devices will be tested.
 The list of compatible and tested **Desktop** browsers:
 
   * Chrome
+  * Firefox
+  * Opera
   * Safari
 
 Above list will change as soon as different browsers will be tested.
@@ -62,6 +68,6 @@ _testardo_ would like to simplify one-shot or infinitely repeated integration te
   * https and SSL compatibility
   * more sandbox shortcuts/utilities
   * more Desktop browsers to test
-  * more Mobile devices too
+  * more Mobile browsers/devices too
 
 Any help will be more than appreciated.
