@@ -105,10 +105,12 @@ var
     // it is possible to not specify the callback and use instead
     // sb.load('/newPath').then(callback);
     load: function (href, callback) {
-      var xhr = XHR();
-      xhr.open('HEAD', href, false);
-      xhr.send(null);
-      sandbox.status = xhr.status;
+      if (!/^about:/.test(href)) {
+        var xhr = XHR();
+        xhr.open('HEAD', href, false);
+        xhr.send(null);
+        sandbox.status = xhr.status;
+      }
       addIframeOnLoad(callback);
       window.location.href = href;
       lastAction = 'load';
@@ -126,7 +128,7 @@ var
     // exposes some useful info about the navigator
     navigator: {
       // the device kind (iPad, iPod, iPhone, Silk, Android, IEMobile)
-      kind: /\b(Android|Asha|IEMobile|iP(?:ad|od|hone)|Silk)\b/.test(navigator.userAgent) ? RegExp.$1 : 'unknown',
+      kind: /\b(Silk|Asha|IEMobile|iP(?:ad|od|hone)|Android)\b/.test(navigator.userAgent) ? RegExp.$1 : 'unknown',
       // the OS version
       // https://gist.github.com/WebReflection/7107617#file-navigator-version-js
       version: /(?:(?:OS(?: X)?|Android|Windows(?: NT)) |(?:IEMobile|Version|webOS|Nokia\w+)\/)(\d+)[_.](\d+)(?:[_.](\d+(?:\.\d+)?))?/.test(navigator.userAgent) ?

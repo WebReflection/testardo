@@ -37,6 +37,9 @@ var // dependencies
   // recycled headers for entry page
   html = {"Content-Type": "text/html"},
 
+  // recycled headers for local libraries
+  js = {"Content-Type": "application/javascript"},
+
   // all UA that failed the test
   failures = Object.create(null),
 
@@ -49,6 +52,13 @@ var // dependencies
     this.response.writeHead(response.statusCode, response.headers);
     // pipe the whole response to the current one
     response.pipe(this.response);
+  },
+
+  onerror = function () {
+    if (!favicon.test(this.path)) {
+      process.stderr.write(this.path);
+      console.log(EOL);
+    }
   },
 
   // --- SPECIAL OPERATIONS ---
@@ -65,9 +75,12 @@ var // dependencies
   // note:  right now it will fail with https requests
   // TODO:  it should probably not
   external = /^\/%3C%3C%3C/,
+  externalURI = /^https?:\/\//,
   // strip out beginning of this same file and server related stuff
   // this is used to write inline testardo client to the browser
-  fn = /^#[^\n\r]+|\/\*(server)[^\x00]*?\1\*\//g
+  fn = /^#[^\n\r]+|\/\*(server)[^\x00]*?\1\*\//g,
+  // by default browsers want this file
+  favicon = /^\/favicon\.ico/
 ;
 
 // simply send an empty page and exit the process if necessary
@@ -181,18 +194,31 @@ function server(req, response){
       emptyPage(response, DONT_LOOP);
     }
   } else if(external.test(req.url)) {
-    // requesting an external URL or library
-    // TODO:  think about caching these requests on the server too
-    //          - pros: less bandwidth used
-    //          - cons: no updated content when/if necessary
-    //          - how:  probably a <<* instead of <<< to force download?
-    http.get(url.parse(
-      decodeURIComponent(req.url.slice(10))
-    ), onload).response = response;
+    body = decodeURIComponent(req.url.slice(10));
+    if (externalURI.test(body)) {
+      // requesting an external URL or library
+      // TODO:  think about caching these requests on the server too
+      //          - pros: less bandwidth used
+      //          - cons: no updated content when/if necessary
+      //          - how:  probably a <<* instead of <<< to force download?
+      http
+        .get(url.parse(body), onload)
+        .on('error', onerror)
+        .response = response
+      ;
+    } else {
+      if (fs.existsSync(body)) {
+        response.writeHead(200, js);
+        response.end(fs.readFileSync(body, 'utf-8'));
+      } else {
+        process.stderr.write('unable to read ' + body);
+        console.log(EOL);
+      }
+    }
   } else {
     // any other request will be proxied to the MIRROR port
     options.path = req.url;
     options.headers = req.headers;
-    http.get(options, onload).response = response;
+    http.get(options, onload).on('error', onerror).response = response;
   }
 }

@@ -1,1 +1,1 @@
-this.$ = function(global) {'use strict';
+this.$ = function() {'use strict';
