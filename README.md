@@ -20,6 +20,10 @@ As long as your Mac/Linux machine is reachable through the same network there's 
 
 If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file, or launch `./testardo` without arguments in your console.
 
+
+### grunt plugin
+A huge thank to [@gianlucaguarini](https://twitter.com/gianlucaguarini) for his [grunt-testardo](https://github.com/GianlucaGuarini/grunt-testardo#grunt-testardo-) plugin.
+
 #### example
 A very basic example is shown in [this file](examples/google-search.js).
 
