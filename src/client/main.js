@@ -3,8 +3,6 @@
 var
   global = this,
   COMMON_DELAY = 100,
-  // Set a nicer custom font for the output
-  GOOGLE_FONT = '<link href=\'http://fonts.googleapis.com/css?family=Ubuntu\' rel=\'stylesheet\' type=\'text/css\'>',
   // use native selector or not ?
   NATIVE_SELECTOR = !!global.document.querySelectorAll,
   // try to understand the current page width
@@ -212,22 +210,16 @@ function removeListener(where, which, what, lvl0) {
 // show a big green or red page accordingly with tests result
 function showResult(text) {
   var
-    innerHTML = GOOGLE_FONT,
+    innerHTML = '<center><b>' + text + '</b></center>',
     html
   ;
-
-  innerHTML += '<center><b>' + text + '</b></center>';
   try {
     (html = global.document.documentElement).innerHTML = innerHTML;
   } catch(probablyIE9Mobile) {
     (html = document.body).innerHTML = innerHTML;
   }
-  // a bit of styling
-  html.style.fontFamily = '\'Ubuntu\', Arial, sans-serif';
-  html.style.fontSize = '3.5em';
-
-  html.style.background = text == 'OK' ? '#62b81d' : (
-    text === 'offline' ? '#fff000' : '#d9313b'
+  html.style.background = text == 'OK' ? '#0F0' : (
+    text === 'offline' ? '#FF0' : '#F00'
   );
 }
 
