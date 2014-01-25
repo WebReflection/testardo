@@ -4,6 +4,9 @@
   http.createServer(server).on('error', startServer).listen(PORT++, IP, function() {
     // show possible WiFi interfaces during startup
     var interfaces = os.networkInterfaces(),
+        ethernetFilter = process.env.WIFI_ONLY ?
+          /^en[1-9]\d*|wlan\d+$/ :
+          /^(?:en|wlan|eth)\d+$/,
         show = [];
     Object.keys(interfaces).forEach(
       function(key){
@@ -16,7 +19,7 @@
           // right now easier to reach through the network/url bar
           obj.family === 'IPv4' &&
           // either WiFi in Mac or Linux
-          /^en[1-9]\d*|wlan\d+$/.test(this)
+          ethernetFilter.test(this)
         ) {
           // put this as possible reachable url for testing
           show.push(this + ': http://' + obj.address + ':' + (PORT - 1) + '/$');
