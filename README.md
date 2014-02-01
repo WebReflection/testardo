@@ -3,7 +3,7 @@ testardo
   a browser and OS agnostic web driver for mobile and desktop
 
 
-![7357][testardo_bright.png]
+![7357](testardo_bright.png)
 
 
 ### in a nutshell
