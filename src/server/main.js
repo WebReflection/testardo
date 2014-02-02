@@ -1,11 +1,16 @@
 var // dependencies
   http = require('http'),
+  https = require('https'),
   fs = require('fs'),
   os = require('os'),
   path = require('path'),
   url = require('url'),
   // end of line
   EOL = os.EOL || '\n',
+  // is it HTTPS (any --https flag would do) ?
+  HTTPS = !!Object.keys(process.env).filter(function(key){
+    return this.test(key);
+  }, /^HTTPS(?:_[A-Z]+)*$/).length,
   // which IP for the current server + proxy ?
   IP = process.env.IP || '0.0.0.0',
   // which port is for testardo ?
@@ -13,7 +18,7 @@ var // dependencies
   // which host/domain name ?
   HOST = process.env.HOST || 'localhost',
   // which server port to mirror/proxy via testardo ?
-  MIRROR = process.env.MIRROR || 80,
+  MIRROR = process.env.MIRROR || (HTTPS ? 443 : 80),
   // how long before each test should timeout ?
   // note:  if specified inside the test as timeout property
   //        that value will be used instead
@@ -29,35 +34,94 @@ var // dependencies
   FULL_HOST = HOST + ':' + MIRROR,
   // recycled options object per each proxy request
   options = {
+    passphrase: enrichHTTPSOptions('passphrase'),
+    pfx: enrichHTTPSOptions('pfx'),
+    key: enrichHTTPSOptions('key', [
+      '-----BEGIN RSA PRIVATE KEY-----',
+      'MIICXQIBAAKBgQDLrcjMw8Gcg+jlit75Arz+HnMs/lG4hP5nSBL2H449i+KsQHJz',
+      '6EA+uyAqTSwyfhqRMkdLUkYoXAQP4SklMCkaxaBBrd6dem8tT1ckIaA0PfdJYfDC',
+      'uKczHG2klnq2/NAw/O33AK58dbtxfSRzFJPMs3gBtt6/UWti4Ilb1aQe9wIDAQAB',
+      'AoGBAMoU13iJ9MuUePtd6FJJbDf5AC8w+OXJVhwk/2Mg9eCMrM5YdvYXBb73rDcs',
+      'MGC8iyFqMCBENgWPHhyfOlKCURRQxb2u+xWBssbM940NAl0Gie9WzPxw041QmwDQ',
+      '0Qqy1aC/Okcz0lbTDbidbnc6fvTV1aC65Pr2+98vgw7cVWlxAkEA5csSTCGCF3vS',
+      'nRsVV88MJCZLP2/GgP7CSeMDmLHwTCVr2JmDVa+R/1Dom+kXG3Cr9Q0xCy1RzO4G',
+      'OddAOotG+QJBAOLoSjXHPzf48md/8c8vgB9NBc0hlMuY54xMjSxACCb4g1miPh+Z',
+      'CKeGZgxHirndJi6GAJYwoI3MLWuqkyM8YW8CQQCU4MhuApeiV1rQ5qchSMd49EZ0',
+      'Rxq4oFWIQUgnOcGR0/zXTD5G2YUhgW3y9UU/RfRiw7UupKIGv3/RIaA/TdUhAkBz',
+      '2Q0qb9PDDAMW/KfElAfh8z0nAiIp4KM3ak4ZbYe7/d1yAfedwlA81816L3yQcGxy',
+      'DFB4XdNbEgeOlMQSlV1ZAkB6NnAfNJDkwwpN2sM3QM4OtvWsWHYO2bFbRGqoOryq',
+      'UEACAx5/UdL4MPhUf5oyDOauu/UpV/BqObFLnvunj05O',
+      '-----END RSA PRIVATE KEY-----'].join('\n')
+    ),
+    cert: enrichHTTPSOptions('cert', [
+      '-----BEGIN CERTIFICATE-----',
+      'MIICfzCCAegCCQD9vawlAR85XjANBgkqhkiG9w0BAQUFADCBgzELMAkGA1UEBhMC',
+      'SVQxFTATBgNVBAgTDEdydW1weUxhbmRpYTETMBEGA1UEBxMKR3J1bXB5Q2l0eTEX',
+      'MBUGA1UEChMOR3J1bXB5IENhdCBMVEQxDzANBgNVBAMTBkdydW1weTEeMBwGCSqG',
+      'SIb3DQEJARYPY2F0LmdAZ21haWwuY29tMB4XDTEzMDkyNjA5NTUyNloXDTM4MDUx',
+      'ODA5NTUyNlowgYMxCzAJBgNVBAYTAklUMRUwEwYDVQQIEwxHcnVtcHlMYW5kaWEx',
+      'EzARBgNVBAcTCkdydW1weUNpdHkxFzAVBgNVBAoTDkdydW1weSBDYXQgTFREMQ8w',
+      'DQYDVQQDEwZHcnVtcHkxHjAcBgkqhkiG9w0BCQEWD2NhdC5nQGdtYWlsLmNvbTCB',
+      'nzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAy63IzMPBnIPo5Yre+QK8/h5zLP5R',
+      'uIT+Z0gS9h+OPYvirEByc+hAPrsgKk0sMn4akTJHS1JGKFwED+EpJTApGsWgQa3e',
+      'nXpvLU9XJCGgND33SWHwwrinMxxtpJZ6tvzQMPzt9wCufHW7cX0kcxSTzLN4Abbe',
+      'v1FrYuCJW9WkHvcCAwEAATANBgkqhkiG9w0BAQUFAAOBgQA9c1UF2lbYGlNFruMO',
+      'd47scNsZBkSSnRRMSloNhO2KIOhRA57WjFk9b0XmCe1gQuNlEWVHf+HZv/Xet8+9',
+      'LRhImq4KAG5R+z3TjBrtI/yrVWEzNk+mnygRvsX6MoDKNDbzE6y87tviBUxNgAWB',
+      'r/pX8MbqC5NpbLys0A1cpm9tRw==',
+      '-----END CERTIFICATE-----'
+    ].join('\n')),
+    ca: enrichHTTPSOptions('ca', [
+      '-----BEGIN CERTIFICATE REQUEST-----',
+      'MIIBxDCCAS0CAQAwgYMxCzAJBgNVBAYTAklUMRUwEwYDVQQIEwxHcnVtcHlMYW5k',
+      'aWExEzARBgNVBAcTCkdydW1weUNpdHkxFzAVBgNVBAoTDkdydW1weSBDYXQgTFRE',
+      'MQ8wDQYDVQQDEwZHcnVtcHkxHjAcBgkqhkiG9w0BCQEWD2NhdC5nQGdtYWlsLmNv',
+      'bTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAy63IzMPBnIPo5Yre+QK8/h5z',
+      'LP5RuIT+Z0gS9h+OPYvirEByc+hAPrsgKk0sMn4akTJHS1JGKFwED+EpJTApGsWg',
+      'Qa3enXpvLU9XJCGgND33SWHwwrinMxxtpJZ6tvzQMPzt9wCufHW7cX0kcxSTzLN4',
+      'Abbev1FrYuCJW9WkHvcCAwEAAaAAMA0GCSqGSIb3DQEBBQUAA4GBAJJv/mdIboZH',
+      'fZIEz0pw2vmKhpceoiXhz7HTllFZ/om/msAPRA5V0kyXEZJ32YIUBv2MR6cHtoHQ',
+      'vag7cw+GifXSgyT8loDG2dAjvWtiFXXGKN6YnkJW6iXOHDVo5ETdaJCI3pUhHVSB',
+      'GGtjL91MJhEmB6q7SDNfaBroQ9UYAu4C',
+      '-----END CERTIFICATE REQUEST-----'
+    ].join('\n')),
+    ciphers: enrichHTTPSOptions('ciphers'),
+    headers: null,
     host: HOST,
     port: MIRROR,
-    path: '',
-    headers: null
+    path: ''
   },
   // recycled headers for entry page
-  html = {"Content-Type": "text/html"},
+  html = {
+    "Content-Type": "text/html",
+    headers: addCORS({})
+  },
 
   // recycled headers for local libraries
-  js = {"Content-Type": "application/javascript"},
+  js = {
+    "Content-Type": "application/javascript",
+    headers: addCORS({})
+  },
 
   // all UA that failed the test
   failures = Object.create(null),
 
   // what to do once loaded
   onload = function(response) {
-    // simplify browser and tests life via cross frame access
-    response.headers['x-frame-options'] = 'ALLOWALL';
-    response.headers['x-xss-protection'] = 0;
     // send same status and headers
-    this.response.writeHead(response.statusCode, response.headers);
+    this.response.writeHead(
+      response.statusCode,
+      addCORS(response.headers)
+    );
     // pipe the whole response to the current one
     response.pipe(this.response);
   },
 
-  onerror = function () {
+  onerror = function (err) {
     if (!favicon.test(this.path)) {
       process.stderr.write(this.path);
       console.log(EOL);
+      console.error(err);
     }
   },
 
@@ -80,8 +144,32 @@ var // dependencies
   // this is used to write inline testardo client to the browser
   fn = /^#[^\n\r]+|\/\*(server)[^\x00]*?\1\*\//g,
   // by default browsers want this file
-  favicon = /^\/favicon\.ico/
+  favicon = /^\/favicon\.ico/,
+  // which proxy ?
+  proxy = HTTPS ? https : http
 ;
+
+if (options.ca) options.ca = [options.ca];
+if (HTTPS) process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
+
+// enrich headers with CORS evilness
+function addCORS(headers) {
+  // simplify browser and tests life via cross frame access
+  headers['x-frame-options'] = 'ALLOWALL';
+  headers['x-xss-protection'] = 0;
+  headers['access-control-allow-origin'] = '*';
+  return headers;
+}
+
+// used to set SSH options 
+function enrichHTTPSOptions(key, dflt) {
+  key = 'HTTPS_' + key.toUpperCase();
+  var value = process.env[key];
+  if (value && value != 1 && /^[^-----]/.test(value) && fs.existsSync(value)) {
+    value = fs.readFileSync(body, 'utf-8');
+  }
+  return (value == 1 ? dflt : value) || null;
+}
 
 // simply send an empty page and exit the process if necessary
 function emptyPage(response, exit) {
@@ -141,7 +229,10 @@ function server(req, response){
       '<title>testardo@', FULL_HOST, '</title>',
       '<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">',
       '<style>*{zoom:1;border:0;margin:0;padding:0;width:100%;height:100%;font-size:0;line-height:0;}</style>',
-      '<iframe src="about:blank"></iframe>',
+      '<iframe ',
+        'sandbox="allow-same-origin allow-top-navigation allow-forms allow-scripts" ',
+        'src="about:blank"',
+      '></iframe>',
       // it includes `testardo` itself to offer a zero-config solution
       '<script>', fs.readFileSync(__filename, 'utf-8').toString().replace(fn, ''), EOL,
         // pre fetch all tests for the browser
@@ -150,6 +241,8 @@ function server(req, response){
         '$.timeout=', TIMEOUT, ';', EOL,
         // specify if it should loop forever
         '$.loop=', !DONT_LOOP, ';', EOL,
+        // is it simulating HTTPS ?
+        '$.HTTPS=', HTTPS, ';', EOL,
         // initialize testardo on the client side
         'this.onload=$;',
       '</script>'
@@ -201,7 +294,7 @@ function server(req, response){
       //          - pros: less bandwidth used
       //          - cons: no updated content when/if necessary
       //          - how:  probably a <<* instead of <<< to force download?
-      http
+      proxy
         .get(url.parse(body), onload)
         .on('error', onerror)
         .response = response
@@ -217,8 +310,14 @@ function server(req, response){
     }
   } else {
     // any other request will be proxied to the MIRROR port
+    if (!HTTPS) {
+      options.headers = req.headers;
+    }
     options.path = req.url;
-    options.headers = req.headers;
-    http.get(options, onload).on('error', onerror).response = response;
+    proxy
+      .get(options, onload)
+      .on('error', onerror)
+      .response = response
+    ;
   }
 }

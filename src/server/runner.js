@@ -2,7 +2,7 @@
 // incrementally trying until it can start on the specified IP
 (function startServer() {
   http.createServer(server).on('error', startServer).listen(PORT++, IP, function() {
-    // show possible WiFi interfaces during startup
+    // show possible Network/WiFi interfaces during startup
     var interfaces = os.networkInterfaces(),
         ethernetFilter = process.env.WIFI_ONLY ?
           /^en[1-9]\d*|wlan\d+$/ :

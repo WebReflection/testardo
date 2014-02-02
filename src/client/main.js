@@ -102,8 +102,15 @@ function dispatch(node, evt) {
 // what to do when an error occurres
 function error(e) {
   var message = e.message || 'ERROR';
-  removeListener(window, 'error', error, onerror);
   removeListener(global, 'error', error, onerror);
+  try {
+    // the window might be not the expected one
+    // so this could actually throw ...
+    removeListener(window, 'error', error, onerror);
+  } catch(e) {
+    // ... that means the test failed anyway
+    // showingt the initial error is more important
+  }
   showResult(message);
   sandbox.error(message + (
     e.stack ? '\n' + e.stack : ''
@@ -230,11 +237,20 @@ function stopPropagation() {
 
 // update all shared variables in this scope
 function updateReferences() {
-  var html, context;
+  var html, context,
+      newWindow = grabWindow();
+  try {
+    // the new document might have security restrictions
+    // regardless it's exposed as network address
+    // document.domain or other tricks might fail for now
+    // however, we want to know when this happens
+    sandbox.document = document = newWindow.document;
+  } catch(e) {
+    // and stop test execution ASAP
+    return error(e);
+  }
   // the new window
-  sandbox.window = window = grabWindow();
-  // the new document
-  sandbox.document = document = window.document;
+  sandbox.window = window = newWindow;
   // necessary to avoid problems with non respected
   // viewport size inside the iframe
   html = document.documentElement;

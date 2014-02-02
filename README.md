@@ -3,6 +3,9 @@ testardo
   a browser and OS agnostic web driver for mobile and desktop
 
 
+![7357](testardo_bright.png)
+
+
 ### in a nutshell
 Bored to death to swipe around in order to be sure device X still works? If so, give _testardo_ a chance!
 
@@ -19,6 +22,10 @@ The executable will create a testing environment showing the URL to load through
 As long as your Mac/Linux machine is reachable through the same network there's really nothing else to do.
 
 If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file, or launch `./testardo` without arguments in your console.
+
+
+### basic HTTPS support
+Landed in version `0.2.x` basic HTTPS support, i.e. `testardo --host=webreflection.github.io --https examples/eddy.js`
 
 
 ### grunt plugin
@@ -69,7 +76,7 @@ _testardo_ would like to simplify one-shot or infinitely repeated integration te
 
 ### TODO
 
-  * https and SSL compatibility
+  * ~~https and SSL compatibility~~ (basic support for https landed in 0.2.x)
   * more sandbox shortcuts/utilities
   * more Desktop browsers to test
   * more Mobile browsers/devices too
@@ -78,6 +85,8 @@ Any help will be more than appreciated.
 
 ### F.A.Q.
 
+  * **wasn't [Karma](http://karma-runner.github.io/) or <-- put another project name here --> doing already this ?** NO, by time I've written `./testardo` there was not a single alternative for cross browser and cross OS integration tests. However, and ironically if you want, you could run `Karma` inside `testardo` if you think your unit test framework needs to be tested through integrations with browsers or devices ... go crazy with all sort of tests as long as you test something in a meaningful way ;-)
   * **what does _testardo_ mean ?** in Italian, _testardo_ means stubborn and it plays well in English because of the _test_ part of the word, and the _hard_ like sound too which properly represents the current status of mobile web testing and development.
   * **why a single JS file with everything and no dependencies ?** assume for a second you don't have `npm` but just some version of node and you still want that machine to be able to be the server for a rack of testing devices ... _testardo_ wants to be a **zero config** and **zer stress** solution as agnostic as possible on the server side too. Creating a single JS file that is used for both the server and the client part was also a very interesting achievement many talked about before, few did in a concrete way as _testardo_ does :-)
   * **is _testardo_ compatible with <-- put your library name here --> ?** YES, testardo simply creates the sandboxed environment and the proxy logic to _zombify_ your devices but it does not pollute at all the surrounding env with any library. The `sandbox` is rather an utility you can feel free to not use or ignore, passing through the provided `window` or `document` arguments.
+  * **what's with port 7357 ?** if you replace the number `7357` with similar capital letters where `7 == T`, `3 == E`, and `5 == S`, you'll realize such port is the easiest to remember ever for TEST purposes

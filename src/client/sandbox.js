@@ -105,7 +105,7 @@ var
     // it is possible to not specify the callback and use instead
     // sb.load('/newPath').then(callback);
     load: function (href, callback) {
-      if (!/^about:/.test(href)) {
+      if (!HTTPS && !/^about:/.test(href)) {
         var xhr = XHR();
         xhr.open('HEAD', href, false);
         xhr.send(null);
