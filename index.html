@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Testardo by WebReflection</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Testardo</h1>
+        <p>a browser and OS agnostic web driver for mobile and desktop</p>
+
+        <p class="view"><a href="https://github.com/WebReflection/testardo">View the Project on GitHub <small>WebReflection/testardo</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/WebReflection/testardo/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/WebReflection/testardo/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/WebReflection/testardo">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="testardo" class="anchor" href="#testardo"><span class="octicon octicon-link"></span></a>testardo</h1>
+
+<p>a browser and OS agnostic web driver for mobile and desktop</p>
+
+<p><img src="testardo_bright.png" alt="7357"></p>
+
+<h3>
+<a name="in-a-nutshell" class="anchor" href="#in-a-nutshell"><span class="octicon octicon-link"></span></a>in a nutshell</h3>
+
+<p>Bored to death to swipe around in order to be sure device X still works? If so, give <em>testardo</em> a chance!</p>
+
+<p><em>testardo</em> is the easiest way to test your local projects with some remote service testing capabilities too.
+You can be notified if something goes wrong, you can change tests at runtime and have an instant update for all running devices, you can forget SDKs, special software, drivers, patches and fixes ... you create the test with everything you know and need already with the ability to include libraries and utilities at runtime.</p>
+
+<p><strong>testardo</strong> will be instantly useful thanks to its status colors on any device display: green for success, yellow if the server is offline, red when there was an error and with shown error info ... as easy as that!</p>
+
+<h3>
+<a name="how-to" class="anchor" href="#how-to"><span class="octicon octicon-link"></span></a>how to</h3>
+
+<p>To use <em>testardo</em> ... all you need is the <a href="build/testardo">testardo</a> file. Grab it or simply install it via <code>npm install -g testardo</code>.</p>
+
+<p>The executable will create a testing environment showing the URL to load through your device browser.
+As long as your Mac/Linux machine is reachable through the same network there's really nothing else to do.</p>
+
+<p>If you want to have an idea of <em>testardo</em> options at launch time, please check the <a href="src/server/how-to.js">how-to</a> file, or launch <code>./testardo</code> without arguments in your console.</p>
+
+<h3>
+<a name="basic-https-support" class="anchor" href="#basic-https-support"><span class="octicon octicon-link"></span></a>basic HTTPS support</h3>
+
+<p>Landed in version <code>0.2.x</code> basic HTTPS support, i.e. <code>testardo --host=webreflection.github.io --https examples/eddy.js</code></p>
+
+<h3>
+<a name="grunt-plugin" class="anchor" href="#grunt-plugin"><span class="octicon octicon-link"></span></a>grunt plugin</h3>
+
+<p>A huge thank to <a href="https://twitter.com/gianlucaguarini">@gianlucaguarini</a> for his <a href="https://github.com/GianlucaGuarini/grunt-testardo#grunt-testardo-">grunt-testardo</a> plugin.</p>
+
+<h4>
+<a name="example" class="anchor" href="#example"><span class="octicon octicon-link"></span></a>example</h4>
+
+<p>A very basic example is shown in <a href="examples/google-search.js">this file</a>.</p>
+
+<p>Write <code>./testardo --host=google.com --loop=0 examples/google-search.js</code> and connect to the full url shown in the terminal.
+This will look something like: <code>en1: http://192.168.1.146:7357/$</code> where the full url to connect to will be <code>http://192.168.1.146:7357/$</code></p>
+
+<h4>
+<a name="original-post--live-demo" class="anchor" href="#original-post--live-demo"><span class="octicon octicon-link"></span></a>original post + live demo</h4>
+
+<p>If you want to know more and see a video about <em>testardo</em> feel free to reach <a href="http://webreflection.blogspot.com/2014/01/testardo-browser-agnostic-js-web-driver.html">the original post in my blog</a></p>
+
+<h3>
+<a name="compatibility" class="anchor" href="#compatibility"><span class="octicon octicon-link"></span></a>compatibility</h3>
+
+<p>So far, <em>testardo</em> has been tested with the following <strong>Mobile</strong> browsers:</p>
+
+<ul>
+<li>iOS 5.1 and greater</li>
+<li>Android 2.3 and greater</li>
+<li>Opera Mobile Classic</li>
+<li>Firefox OS 1.0 and greater</li>
+<li>Windows Phone 7 and greater</li>
+<li>Blackberry 10</li>
+<li>Kindle Fire Silk</li>
+<li>webOS (the one for the old palm pre, not yet LG TVs)</li>
+</ul><p>Above list will change as soon as new devices will be tested.</p>
+
+<p>The list of compatible and tested <strong>Desktop</strong> browsers:</p>
+
+<ul>
+<li>Chrome</li>
+<li>Firefox</li>
+<li>Opera</li>
+<li>Safari</li>
+</ul><p>Above list will change as soon as different browsers will be tested.</p>
+
+<p>Ideally old IE browsers should work too (at some point).</p>
+
+<h3>
+<a name="why" class="anchor" href="#why"><span class="octicon octicon-link"></span></a>why</h3>
+
+<p>Selenium is cool but there's no selenium for platforms different from Android and iOS.
+This makes integration tests extremely painful for all other phones, both newer and older.</p>
+
+<p><em>testardo</em> would like to simplify one-shot or infinitely repeated integration tests with any browser you would like to test.</p>
+
+<h3>
+<a name="todo" class="anchor" href="#todo"><span class="octicon octicon-link"></span></a>TODO</h3>
+
+<ul>
+<li>
+<del>https and SSL compatibility</del> (basic support for https landed in 0.2.x)</li>
+<li>more sandbox shortcuts/utilities</li>
+<li>more Desktop browsers to test</li>
+<li>more Mobile browsers/devices too</li>
+</ul><p>Any help will be more than appreciated.</p>
+
+<h3>
+<a name="faq" class="anchor" href="#faq"><span class="octicon octicon-link"></span></a>F.A.Q.</h3>
+
+<ul>
+<li>
+<strong>wasn't <a href="http://karma-runner.github.io/">Karma</a> or &lt;-- put another project name here --&gt; doing already this ?</strong> NO, by time I've written <code>./testardo</code> there was not a single alternative for cross browser and cross OS integration tests. However, and ironically if you want, you could run <code>Karma</code> inside <code>testardo</code> if you think your unit test framework needs to be tested through integrations with browsers or devices ... go crazy with all sort of tests as long as you test something in a meaningful way ;-)</li>
+<li>
+<strong>what does <em>testardo</em> mean ?</strong> in Italian, <em>testardo</em> means stubborn and it plays well in English because of the <em>test</em> part of the word, and the <em>hard</em> like sound too which properly represents the current status of mobile web testing and development.</li>
+<li>
+<strong>why a single JS file with everything and no dependencies ?</strong> assume for a second you don't have <code>npm</code> but just some version of node and you still want that machine to be able to be the server for a rack of testing devices ... <em>testardo</em> wants to be a <strong>zero config</strong> and <strong>zer stress</strong> solution as agnostic as possible on the server side too. Creating a single JS file that is used for both the server and the client part was also a very interesting achievement many talked about before, few did in a concrete way as <em>testardo</em> does :-)</li>
+<li>
+<strong>is <em>testardo</em> compatible with &lt;-- put your library name here --&gt; ?</strong> YES, testardo simply creates the sandboxed environment and the proxy logic to <em>zombify</em> your devices but it does not pollute at all the surrounding env with any library. The <code>sandbox</code> is rather an utility you can feel free to not use or ignore, passing through the provided <code>window</code> or <code>document</code> arguments.</li>
+<li>
+<strong>what's with port 7357 ?</strong> if you replace the number <code>7357</code> with similar capital letters where <code>7 == T</code>, <code>3 == E</code>, and <code>5 == S</code>, you'll realize such port is the easiest to remember ever for TEST purposes</li>
+</ul>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/WebReflection">WebReflection</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
