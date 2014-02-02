@@ -24,6 +24,10 @@ As long as your Mac/Linux machine is reachable through the same network there's 
 If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file, or launch `./testardo` without arguments in your console.
 
 
+### basic HTTPS support
+Landed in version `0.2.x` basic HTTPS support, i.e. `testardo --host=webreflection.github.io --https examples/eddy.js`
+
+
 ### grunt plugin
 A huge thank to [@gianlucaguarini](https://twitter.com/gianlucaguarini) for his [grunt-testardo](https://github.com/GianlucaGuarini/grunt-testardo#grunt-testardo-) plugin.
 
@@ -72,7 +76,7 @@ _testardo_ would like to simplify one-shot or infinitely repeated integration te
 
 ### TODO
 
-  * https and SSL compatibility
+  * ~~https and SSL compatibility~~ (basic support for https landed in 0.2.x)
   * more sandbox shortcuts/utilities
   * more Desktop browsers to test
   * more Mobile browsers/devices too

@@ -10,6 +10,7 @@ var
   // save timeout, loop, and tests since window.$ will be removed
   TIMEOUT = $.timeout,
   LOOP = $.loop,
+  HTTPS = $.HTTPS,
   tests = $.tests
 ;
 
