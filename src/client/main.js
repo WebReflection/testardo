@@ -33,8 +33,10 @@ function XHR() {
 // re-set the iframe onload callback
 function addIframeOnLoad(callback) {
   // if a callback is specified ...
-  iframe.onload = callback ?
+  var onIframeLoad = iframe.onload = callback ?
     function () {
+      // nullify onreadystatechange
+      onIframeLoad = iframe.onreadystatechange = Object;
       // update all references first
       onload();
       // then invoke the test after a little while
@@ -44,8 +46,18 @@ function addIframeOnLoad(callback) {
       );
     } :
     // otherwise it just update references
-    onload
+    function() {
+      // nullify onreadystatechange
+      onIframeLoad = iframe.onreadystatechange = Object;
+      // update all references
+      onload();
+    }
   ;
+  iframe.onreadystatechange = function () {
+    if (/complete/.test(iframe.readyState)) {
+      onIframeLoad.call(iframe);
+    }
+  };
 }
 
 // shortcut to add error listener/handler in both old browsers and modern

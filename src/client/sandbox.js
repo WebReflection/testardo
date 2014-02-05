@@ -112,7 +112,7 @@ var
         sandbox.status = xhr.status;
       }
       addIframeOnLoad(callback);
-      window.location.href = href;
+      iframe.src = href;
       lastAction = 'load';
       return sandbox;
     },
@@ -121,7 +121,7 @@ var
     loadFromDifferentDomain: function(href, callback) {
       sandbox.status = 0;
       addIframeOnLoad(callback);
-      window.location.href = '/' + encodeURIComponent('<<<' + href);
+      iframe.src = '/' + encodeURIComponent('<<<' + href);
       lastAction = 'load';
       return sandbox;
     },
