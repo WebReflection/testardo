@@ -8,8 +8,10 @@ var
   // try to understand the current page width
   WIDTH = (
     global.innerWidth ||
-    document.documentElement.offsetWidth ||
-    document.body.offsetWidth
+    global.document.documentElement.offsetWidth ||
+    global.document.documentElement.clientWidth ||
+    global.document.body.offsetWidth ||
+    global.document.body.clientWidth
   ),
   // the main iframe where tests will run
   iframe = global.document.getElementsByTagName('iframe')[0],
@@ -51,7 +53,7 @@ function addListener(where, which, what, lvl0) {
   if ('addEventListener' in where) {
     where.addEventListener(which, what, true);
   } else {
-    where.attachEvent('on' + where, which);
+    where.attachEvent('on' + which, what);
   }
   if (lvl0) {
     where['on' + which] = lvl0;
@@ -207,7 +209,7 @@ function removeListener(where, which, what, lvl0) {
   if ('removeEventListener' in where) {
     where.removeEventListener(which, what, true);
   } else {
-    where.detachEvent('on' + where, which);
+    where.detachEvent('on' + which, what);
   }
   if (lvl0) {
     where['on' + which] = null;
