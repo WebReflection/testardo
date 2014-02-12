@@ -181,6 +181,97 @@ var
           break;
       }
     },
+    // helps scrolling
+    scrollTo: function (nodeOrQuery, y) {
+      if (y != null) {
+        sandbox.window.scrollTo(nodeOrQuery, y);
+      } else {
+        var
+          node = getNode(nodeOrQuery),
+          document = node.ownerDocument,
+          html = document.documentElement,
+          body = document.body,
+          top = function () {
+            return (html.scrollTop || body.scrollTop) ||
+                    sandbox.window.pageYOffset ||
+                   (html.offsetTop || body.offsetTop);
+          },
+          stillNothing = function () {
+            return scrollTop === top();
+          },
+          scrollTop = top(),
+          y
+        ;
+        if ('scrollIntoView' in node) {
+          node.scrollIntoView(true);
+        }
+        if (stillNothing()) {
+          y = node.offsetTop;
+          while(node = node.offsetParent){
+            y += node.offsetTop;
+          }
+          sandbox.scrollTo(0, y);
+          if (stillNothing()) {
+            html.scrollTop = body.scrollTop = y;
+            // well ... screw it
+          }
+        }
+      }
+    },
+    // TODO: use mouse and pointerEvents too
+    swipe: function (nodeOrQuery, options, callback) {
+      var
+        node = getNode(nodeOrQuery),
+        from = options.from,
+        to = options.to,
+        document = sandbox.document,
+        html = document.documentElement,
+        body = document.body,
+        ratio = options.ratio || 1,
+        action = function (type, point) {
+          var evt = sandbox.event(type);
+          evt.touches = type === 'touchend' ? [] : [{
+            clientX: point.x,
+            clientY: point.y,
+            screenX: point.x * ratio,
+            screenY: point.y * ratio,
+            pageX: point.x + (
+              html.scrollLeft || body.scrollLeft
+            ),
+            pageY: point.y + (
+              html.scrollTop || body.scrollTop
+            )
+          }];
+          sandbox.dispatch(node, evt);
+        },
+        fps = 1000 / Math.max(1, Math.min(options.fps || 60, 60)),
+        x = 0,
+        y = 0
+      ;
+      (function trigger(){
+        var currentX = Math.round(from.x + x),
+            currentY = Math.round(from.y + y),
+            type;
+        if (currentX === from.x && currentY === from.y) {
+          // first time, touchstart
+          type = 'touchstart';
+        } else if (currentX === to.x && currentY === to.y) {
+          type = 'touchend';
+        } else {
+          type = 'touchmove';
+        }
+        action(type, {
+          x: currentX,
+          y: currentY
+        });
+        x += (to.x - from.x) * .1;
+        y += (to.y - from.y) * .1;
+        setTimeout(type === 'touchend' ?
+          createCallbackWrap(callback) : trigger,
+          fps
+        );
+      }());
+    },
     // simulates a user writing in a specific field
     // triggering syntethic keyboard events too
     // this operation will be asynchronous
