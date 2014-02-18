@@ -556,11 +556,13 @@ var
       } else {
         var
           node = getNode(nodeOrQuery),
+          nodeBody = node.ownerDocument.body,
           document = window.document,
           html = document.documentElement,
           body = document.body,
           top = function () {
-            return  body.scrollTop ||
+            return  nodeBody.scrollTop ||
+                    body.scrollTop ||
                     html.scrollTop ||
                     window.pageYOffset;
           },
@@ -578,11 +580,14 @@ var
           while(node = node.offsetParent){
             y += node.offsetTop;
           }
-          sandbox.scrollTo(0, y);
+          nodeBody.scrollTop = y;
           if (stillNothing()) {
-            body.scrollTop = y;
+            sandbox.scrollTo(0, y);
             if (stillNothing()) {
-              html.scrollTop = y;
+              body.scrollTop = y;
+              if (stillNothing()) {
+                html.scrollTop = y;
+              }
             }
           }
         }

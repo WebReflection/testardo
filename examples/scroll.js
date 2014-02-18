@@ -4,10 +4,11 @@ module.exports = {
   test: function(sandbox, window, document) {
     function getScrollTop() {
       var top = window.top,
-          document = top.document,
-          body = document.body,
-          html = document.documentElement;
-      return  body.scrollTop ||
+          topDocument = top.document,
+          body = topDocument.body,
+          html = topDocument.documentElement;
+      return  document.body.scrollTop ||
+              body.scrollTop ||
               html.scrollTop ||
               top.pageYOffset;
     }
