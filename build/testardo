@@ -550,18 +550,19 @@ var
     },
     // helps scrolling
     scrollTo: function (nodeOrQuery, y) {
+      var window = sandbox.window.top;
       if (y != null) {
-        sandbox.window.scrollTo(nodeOrQuery, y);
+        window.scrollTo(nodeOrQuery, y);
       } else {
         var
           node = getNode(nodeOrQuery),
-          document = node.ownerDocument,
+          document = window.document,
           html = document.documentElement,
           body = document.body,
           top = function () {
-            return (html.scrollTop || body.scrollTop) ||
-                    sandbox.window.pageYOffset ||
-                   (html.offsetTop || body.offsetTop);
+            return  body.scrollTop ||
+                    html.scrollTop ||
+                    window.pageYOffset;
           },
           stillNothing = function () {
             return scrollTop === top();
@@ -579,8 +580,10 @@ var
           }
           sandbox.scrollTo(0, y);
           if (stillNothing()) {
-            html.scrollTop = body.scrollTop = y;
-            // well ... screw it
+            body.scrollTop = y;
+            if (stillNothing()) {
+              html.scrollTop = y;
+            }
           }
         }
       }
