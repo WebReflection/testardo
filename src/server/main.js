@@ -313,6 +313,7 @@ function server(req, response){
     if (!HTTPS) {
       options.headers = req.headers;
     }
+    options.headers.host = HOST;
     options.path = req.url;
     proxy
       .get(options, onload)
