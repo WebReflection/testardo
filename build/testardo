@@ -74,8 +74,6 @@ function grabJSContent(libraries) {
 var
   global = this,
   COMMON_DELAY = 100,
-  // Set a nicer custom font for the output
-  GOOGLE_FONT = '<link href=\'http://fonts.googleapis.com/css?family=Ubuntu\' rel=\'stylesheet\' type=\'text/css\'>',
   // use native selector or not ?
   NATIVE_SELECTOR = !!global.document.querySelectorAll,
   // try to understand the current page width
@@ -304,22 +302,16 @@ function removeListener(where, which, what, lvl0) {
 // show a big green or red page accordingly with tests result
 function showResult(text) {
   var
-    innerHTML = GOOGLE_FONT,
+    innerHTML = '<center><b>' + text + '</b></center>',
     html
   ;
-
-  innerHTML += '<center><b>' + text + '</b></center>';
   try {
     (html = global.document.documentElement).innerHTML = innerHTML;
   } catch(probablyIE9Mobile) {
     (html = document.body).innerHTML = innerHTML;
   }
-  // a bit of styling
-  html.style.fontFamily = '\'Ubuntu\', Arial, sans-serif';
-  html.style.fontSize = '3.5em';
-
-  html.style.background = text == 'OK' ? '#62b81d' : (
-    text === 'offline' ? '#fff000' : '#d9313b'
+  html.style.background = text == 'OK' ? '#0F0' : (
+    text === 'offline' ? '#FF0' : '#F00'
   );
 }
 
@@ -910,15 +902,16 @@ if (!tests.length) {
     ' testardo [options] dir',
     ' testardo [options] test1.js dir2 test3.js',
     '',
-    '   --ip=0.0.0.0      the ip address to use. by default reachable through the network',
-    '   --port=7357       which port should be used to run tests. i.e. http://0.0.0.0:7357/',
-    '   --host=localhost  the host name. it could be a remote address too',
-    '   --mirror=80       the port to mirror in the host. The usual/default webserver port',
-    '   --timeout=30000   global test timeout in milliseconds',
-    '   --email=me@you.us if specified, sends an email with errors/fixes notifications',
-    '   --loop=1          if 0 or false, it exists after first execution',
-    '   --show-success=0  if 1 or true, it shows all successful attempts',
-    '   --wifi-only=0     if 1 or true, it shows only en1+ or wlan ignoring en0 in Mac',
+    '   --ip=0.0.0.0                the ip address to use. by default reachable through the network',
+    '   --port=7357                 which port should be used to run tests. i.e. http://0.0.0.0:7357/',
+    '   --host=localhost            the host name. it could be a remote address too',
+    '   --http-headers-host=false   to specify a custom http host header value',
+    '   --mirror=80                 the port to mirror in the host. The usual/default webserver port',
+    '   --timeout=30000             global test timeout in milliseconds',
+    '   --email=me@you.us           if specified, sends an email with errors/fixes notifications',
+    '   --loop=1                    if 0 or false, it exists after first execution',
+    '   --show-success=0            if 1 or true, it shows all successful attempts',
+    '   --wifi-only=0               if 1 or true, it shows only en1+ or wlan ignoring en0 in Mac',
     '',
     '',
     ' [2] test content',
@@ -959,6 +952,8 @@ var // dependencies
   PORT = process.env.PORT || 7357,
   // which host/domain name ?
   HOST = process.env.HOST || 'localhost',
+  // to specify a custom http host header value
+  HTTP_HEADERS_HOST = process.env.HTTP_HEADERS_HOST || false,
   // which server port to mirror/proxy via testardo ?
   MIRROR = process.env.MIRROR || (HTTPS ? 443 : 80),
   // how long before each test should timeout ?
@@ -1103,7 +1098,7 @@ function addCORS(headers) {
   return headers;
 }
 
-// used to set SSH options 
+// used to set SSH options
 function enrichHTTPSOptions(key, dflt) {
   key = 'HTTPS_' + key.toUpperCase();
   var value = process.env[key];
@@ -1255,7 +1250,10 @@ function server(req, response){
     if (!HTTPS) {
       options.headers = req.headers;
     }
-    options.headers.host = HOST;
+    if (HTTP_HEADERS_HOST) {
+      options.headers.host = HTTP_HEADERS_HOST;
+    }
+
     options.path = req.url;
     proxy
       .get(options, onload)
