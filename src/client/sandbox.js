@@ -105,14 +105,14 @@ var
     // it is possible to not specify the callback and use instead
     // sb.load('/newPath').then(callback);
     load: function (href, callback) {
-      if (!/^about:/.test(href)) {
+      if (!HTTPS && !/^about:/.test(href)) {
         var xhr = XHR();
         xhr.open('HEAD', href, false);
         xhr.send(null);
         sandbox.status = xhr.status;
       }
       addIframeOnLoad(callback);
-      window.location.href = href;
+      iframe.src = href;
       lastAction = 'load';
       return sandbox;
     },
@@ -121,7 +121,7 @@ var
     loadFromDifferentDomain: function(href, callback) {
       sandbox.status = 0;
       addIframeOnLoad(callback);
-      window.location.href = '/' + encodeURIComponent('<<<' + href);
+      iframe.src = '/' + encodeURIComponent('<<<' + href);
       lastAction = 'load';
       return sandbox;
     },
@@ -180,6 +180,105 @@ var
           lastCallback = callback;
           break;
       }
+    },
+    // helps scrolling
+    scrollTo: function (nodeOrQuery, y) {
+      var window = sandbox.window.top;
+      if (y != null) {
+        window.scrollTo(nodeOrQuery, y);
+      } else {
+        var
+          node = getNode(nodeOrQuery),
+          nodeBody = node.ownerDocument.body,
+          document = window.document,
+          html = document.documentElement,
+          body = document.body,
+          top = function () {
+            return  nodeBody.scrollTop ||
+                    body.scrollTop ||
+                    html.scrollTop ||
+                    window.pageYOffset;
+          },
+          stillNothing = function () {
+            return scrollTop === top();
+          },
+          scrollTop = top(),
+          y
+        ;
+        if ('scrollIntoView' in node) {
+          node.scrollIntoView(true);
+        }
+        if (stillNothing()) {
+          y = node.offsetTop;
+          while(node = node.offsetParent){
+            y += node.offsetTop;
+          }
+          nodeBody.scrollTop = y;
+          if (stillNothing()) {
+            sandbox.scrollTo(0, y);
+            if (stillNothing()) {
+              body.scrollTop = y;
+              if (stillNothing()) {
+                html.scrollTop = y;
+              }
+            }
+          }
+        }
+      }
+    },
+    // TODO: use mouse and pointerEvents too
+    swipe: function (nodeOrQuery, options, callback) {
+      var
+        node = getNode(nodeOrQuery),
+        from = options.from,
+        to = options.to,
+        document = sandbox.document,
+        html = document.documentElement,
+        body = document.body,
+        ratio = options.ratio || 1,
+        action = function (type, point) {
+          var evt = sandbox.event(type);
+          evt.touches = type === 'touchend' ? [] : [{
+            clientX: point.x,
+            clientY: point.y,
+            screenX: point.x * ratio,
+            screenY: point.y * ratio,
+            pageX: point.x + (
+              html.scrollLeft || body.scrollLeft
+            ),
+            pageY: point.y + (
+              html.scrollTop || body.scrollTop
+            )
+          }];
+          sandbox.dispatch(node, evt);
+        },
+        fps = 1000 / Math.max(1, Math.min(options.fps || 60, 60)),
+        x = 0,
+        y = 0
+      ;
+      (function trigger(){
+        var currentX = Math.round(from.x + x),
+            currentY = Math.round(from.y + y),
+            type;
+        if (currentX === from.x && currentY === from.y) {
+          // first time, touchstart
+          type = 'touchstart';
+        } else if (currentX === to.x && currentY === to.y) {
+          type = 'touchend';
+        } else {
+          type = 'touchmove';
+        }
+        action(type, {
+          x: currentX,
+          y: currentY
+        });
+        x += (to.x - from.x) * .1;
+        y += (to.y - from.y) * .1;
+        setTimeout(type === 'touchend' ?
+          createCallbackWrap(callback) : trigger,
+          fps
+        );
+      }());
     },
     // simulates a user writing in a specific field
     // triggering syntethic keyboard events too

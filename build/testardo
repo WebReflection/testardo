@@ -79,8 +79,10 @@ var
   // try to understand the current page width
   WIDTH = (
     global.innerWidth ||
-    document.documentElement.offsetWidth ||
-    document.body.offsetWidth
+    global.document.documentElement.offsetWidth ||
+    global.document.documentElement.clientWidth ||
+    global.document.body.offsetWidth ||
+    global.document.body.clientWidth
   ),
   // the main iframe where tests will run
   iframe = global.document.getElementsByTagName('iframe')[0],
@@ -102,8 +104,10 @@ function XHR() {
 // re-set the iframe onload callback
 function addIframeOnLoad(callback) {
   // if a callback is specified ...
-  iframe.onload = callback ?
+  var onIframeLoad = iframe.onload = callback ?
     function () {
+      // nullify onreadystatechange
+      onIframeLoad = iframe.onreadystatechange = Object;
       // update all references first
       onload();
       // then invoke the test after a little while
@@ -113,8 +117,18 @@ function addIframeOnLoad(callback) {
       );
     } :
     // otherwise it just update references
-    onload
+    function() {
+      // nullify onreadystatechange
+      onIframeLoad = iframe.onreadystatechange = Object;
+      // update all references
+      onload();
+    }
   ;
+  iframe.onreadystatechange = function () {
+    if (/complete/.test(iframe.readyState)) {
+      onIframeLoad.call(iframe);
+    }
+  };
 }
 
 // shortcut to add error listener/handler in both old browsers and modern
@@ -122,7 +136,7 @@ function addListener(where, which, what, lvl0) {
   if ('addEventListener' in where) {
     where.addEventListener(which, what, true);
   } else {
-    where.attachEvent('on' + where, which);
+    where.attachEvent('on' + which, what);
   }
   if (lvl0) {
     where['on' + which] = lvl0;
@@ -173,8 +187,15 @@ function dispatch(node, evt) {
 // what to do when an error occurres
 function error(e) {
   var message = e.message || 'ERROR';
-  removeListener(window, 'error', error, onerror);
   removeListener(global, 'error', error, onerror);
+  try {
+    // the window might be not the expected one
+    // so this could actually throw ...
+    removeListener(window, 'error', error, onerror);
+  } catch(e) {
+    // ... that means the test failed anyway
+    // showingt the initial error is more important
+  }
   showResult(message);
   sandbox.error(message + (
     e.stack ? '\n' + e.stack : ''
@@ -271,7 +292,7 @@ function removeListener(where, which, what, lvl0) {
   if ('removeEventListener' in where) {
     where.removeEventListener(which, what, true);
   } else {
-    where.detachEvent('on' + where, which);
+    where.detachEvent('on' + which, what);
   }
   if (lvl0) {
     where['on' + which] = null;
@@ -301,11 +322,20 @@ function stopPropagation() {
 
 // update all shared variables in this scope
 function updateReferences() {
-  var html, context;
+  var html, context,
+      newWindow = grabWindow();
+  try {
+    // the new document might have security restrictions
+    // regardless it's exposed as network address
+    // document.domain or other tricks might fail for now
+    // however, we want to know when this happens
+    sandbox.document = document = newWindow.document;
+  } catch(e) {
+    // and stop test execution ASAP
+    return error(e);
+  }
   // the new window
-  sandbox.window = window = grabWindow();
-  // the new document
-  sandbox.document = document = window.document;
+  sandbox.window = window = newWindow;
   // necessary to avoid problems with non respected
   // viewport size inside the iframe
   html = document.documentElement;
@@ -442,14 +472,14 @@ var
     // it is possible to not specify the callback and use instead
     // sb.load('/newPath').then(callback);
     load: function (href, callback) {
-      if (!/^about:/.test(href)) {
+      if (!HTTPS && !/^about:/.test(href)) {
         var xhr = XHR();
         xhr.open('HEAD', href, false);
         xhr.send(null);
         sandbox.status = xhr.status;
       }
       addIframeOnLoad(callback);
-      window.location.href = href;
+      iframe.src = href;
       lastAction = 'load';
       return sandbox;
     },
@@ -458,7 +488,7 @@ var
     loadFromDifferentDomain: function(href, callback) {
       sandbox.status = 0;
       addIframeOnLoad(callback);
-      window.location.href = '/' + encodeURIComponent('<<<' + href);
+      iframe.src = '/' + encodeURIComponent('<<<' + href);
       lastAction = 'load';
       return sandbox;
     },
@@ -517,6 +547,105 @@ var
           lastCallback = callback;
           break;
       }
+    },
+    // helps scrolling
+    scrollTo: function (nodeOrQuery, y) {
+      var window = sandbox.window.top;
+      if (y != null) {
+        window.scrollTo(nodeOrQuery, y);
+      } else {
+        var
+          node = getNode(nodeOrQuery),
+          nodeBody = node.ownerDocument.body,
+          document = window.document,
+          html = document.documentElement,
+          body = document.body,
+          top = function () {
+            return  nodeBody.scrollTop ||
+                    body.scrollTop ||
+                    html.scrollTop ||
+                    window.pageYOffset;
+          },
+          stillNothing = function () {
+            return scrollTop === top();
+          },
+          scrollTop = top(),
+          y
+        ;
+        if ('scrollIntoView' in node) {
+          node.scrollIntoView(true);
+        }
+        if (stillNothing()) {
+          y = node.offsetTop;
+          while(node = node.offsetParent){
+            y += node.offsetTop;
+          }
+          nodeBody.scrollTop = y;
+          if (stillNothing()) {
+            sandbox.scrollTo(0, y);
+            if (stillNothing()) {
+              body.scrollTop = y;
+              if (stillNothing()) {
+                html.scrollTop = y;
+              }
+            }
+          }
+        }
+      }
+    },
+    // TODO: use mouse and pointerEvents too
+    swipe: function (nodeOrQuery, options, callback) {
+      var
+        node = getNode(nodeOrQuery),
+        from = options.from,
+        to = options.to,
+        document = sandbox.document,
+        html = document.documentElement,
+        body = document.body,
+        ratio = options.ratio || 1,
+        action = function (type, point) {
+          var evt = sandbox.event(type);
+          evt.touches = type === 'touchend' ? [] : [{
+            clientX: point.x,
+            clientY: point.y,
+            screenX: point.x * ratio,
+            screenY: point.y * ratio,
+            pageX: point.x + (
+              html.scrollLeft || body.scrollLeft
+            ),
+            pageY: point.y + (
+              html.scrollTop || body.scrollTop
+            )
+          }];
+          sandbox.dispatch(node, evt);
+        },
+        fps = 1000 / Math.max(1, Math.min(options.fps || 60, 60)),
+        x = 0,
+        y = 0
+      ;
+      (function trigger(){
+        var currentX = Math.round(from.x + x),
+            currentY = Math.round(from.y + y),
+            type;
+        if (currentX === from.x && currentY === from.y) {
+          // first time, touchstart
+          type = 'touchstart';
+        } else if (currentX === to.x && currentY === to.y) {
+          type = 'touchend';
+        } else {
+          type = 'touchmove';
+        }
+        action(type, {
+          x: currentX,
+          y: currentY
+        });
+        x += (to.x - from.x) * .1;
+        y += (to.y - from.y) * .1;
+        setTimeout(type === 'touchend' ?
+          createCallbackWrap(callback) : trigger,
+          fps
+        );
+      }());
     },
     // simulates a user writing in a specific field
     // triggering syntethic keyboard events too
@@ -586,11 +715,16 @@ var
   // save timeout, loop, and tests since window.$ will be removed
   TIMEOUT = $.timeout,
   LOOP = $.loop,
+  HTTPS = $.HTTPS,
   tests = $.tests
 ;
 
 // remove traces of this function in the global scope
-delete global.$;
+try {
+  delete global.$;
+} catch(IE6) {
+  global.$ = null;
+}
 // also drop the previously set onload
 global.onload = global.$;
 
