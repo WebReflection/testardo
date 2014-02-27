@@ -18,6 +18,7 @@ if (!tests.length) {
     '   --loop=1          if 0 or false, it exists after first execution',
     '   --show-success=0  if 1 or true, it shows all successful attempts',
     '   --wifi-only=0     if 1 or true, it shows only en1+ or wlan ignoring en0 in Mac',
+    '   --force-host=0    if 1 or true, tries to set the specific HOST wen headers are available',
     '',
     '',
     ' [2] test content',

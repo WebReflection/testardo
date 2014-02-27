@@ -17,6 +17,7 @@ var // dependencies
   PORT = process.env.PORT || 7357,
   // which host/domain name ?
   HOST = process.env.HOST || 'localhost',
+  FORCE_HOST = !!process.env.FORCE_HOST,
   // which server port to mirror/proxy via testardo ?
   MIRROR = process.env.MIRROR || (HTTPS ? 443 : 80),
   // how long before each test should timeout ?
@@ -313,7 +314,9 @@ function server(req, response){
     if (!HTTPS) {
       options.headers = req.headers;
     }
-    options.headers.host = HOST;
+    if (options.headers && FORCE_HOST) {
+      options.headers.host = HOST;
+    }
     options.path = req.url;
     proxy
       .get(options, onload)
