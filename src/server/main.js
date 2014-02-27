@@ -12,6 +12,8 @@ var // dependencies
   PORT = process.env.PORT || 7357,
   // which host/domain name ?
   HOST = process.env.HOST || 'localhost',
+  // to specify a custom http host header value
+  HTTP_HEADERS_HOST = process.env.HTTP_HEADERS_HOST || false,
   // which server port to mirror/proxy via testardo ?
   MIRROR = process.env.MIRROR || 80,
   // how long before each test should timeout ?
@@ -82,6 +84,28 @@ var // dependencies
   // by default browsers want this file
   favicon = /^\/favicon\.ico/
 ;
+
+if (options.ca) options.ca = [options.ca];
+if (HTTPS) process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
+
+// enrich headers with CORS evilness
+function addCORS(headers) {
+  // simplify browser and tests life via cross frame access
+  headers['x-frame-options'] = 'ALLOWALL';
+  headers['x-xss-protection'] = 0;
+  headers['access-control-allow-origin'] = '*';
+  return headers;
+}
+
+// used to set SSH options
+function enrichHTTPSOptions(key, dflt) {
+  key = 'HTTPS_' + key.toUpperCase();
+  var value = process.env[key];
+  if (value && value != 1 && /^[^-----]/.test(value) && fs.existsSync(value)) {
+    value = fs.readFileSync(body, 'utf-8');
+  }
+  return (value == 1 ? dflt : value) || null;
+}
 
 // simply send an empty page and exit the process if necessary
 function emptyPage(response, exit) {
@@ -217,6 +241,14 @@ function server(req, response){
     }
   } else {
     // any other request will be proxied to the MIRROR port
+
+    if (!HTTPS) {
+      options.headers = req.headers;
+    }
+    if (HTTP_HEADERS_HOST) {
+      options.headers.host = HTTP_HEADERS_HOST;
+    }
+
     options.path = req.url;
     options.headers = req.headers;
     http.get(options, onload).on('error', onerror).response = response;
