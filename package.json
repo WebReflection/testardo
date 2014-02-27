@@ -1,6 +1,6 @@
 {
   "name": "testardo",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "a browser and OS agnostic web driver for mobile and desktop",
   "main": "./build/testardo",
   "bin": {

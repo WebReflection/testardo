@@ -17,6 +17,8 @@ var // dependencies
   PORT = process.env.PORT || 7357,
   // which host/domain name ?
   HOST = process.env.HOST || 'localhost',
+  // to specify a custom http host header value
+  HTTP_HEADERS_HOST = process.env.HTTP_HEADERS_HOST || false,
   // which server port to mirror/proxy via testardo ?
   MIRROR = process.env.MIRROR || (HTTPS ? 443 : 80),
   // how long before each test should timeout ?
@@ -161,7 +163,7 @@ function addCORS(headers) {
   return headers;
 }
 
-// used to set SSH options 
+// used to set SSH options
 function enrichHTTPSOptions(key, dflt) {
   key = 'HTTPS_' + key.toUpperCase();
   var value = process.env[key];
@@ -313,7 +315,11 @@ function server(req, response){
     if (!HTTPS) {
       options.headers = req.headers;
     }
-    options.headers.host = HOST;
+
+    if (HTTP_HEADERS_HOST) {
+      options.headers.host = HTTP_HEADERS_HOST;
+    }
+
     options.path = req.url;
     proxy
       .get(options, onload)
