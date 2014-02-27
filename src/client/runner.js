@@ -10,16 +10,11 @@ var
   // save timeout, loop, and tests since window.$ will be removed
   TIMEOUT = $.timeout,
   LOOP = $.loop,
-  HTTPS = $.HTTPS,
   tests = $.tests
 ;
 
 // remove traces of this function in the global scope
-try {
-  delete global.$;
-} catch(IE6) {
-  global.$ = null;
-}
+delete global.$;
 // also drop the previously set onload
 global.onload = global.$;
 

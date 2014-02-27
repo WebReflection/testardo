@@ -74,17 +74,13 @@ function grabJSContent(libraries) {
 var
   global = this,
   COMMON_DELAY = 100,
-  // Set a nicer custom font for the output
-  GOOGLE_FONT = '<link href=\'http://fonts.googleapis.com/css?family=Ubuntu\' rel=\'stylesheet\' type=\'text/css\'>',
   // use native selector or not ?
   NATIVE_SELECTOR = !!global.document.querySelectorAll,
   // try to understand the current page width
   WIDTH = (
     global.innerWidth ||
-    global.document.documentElement.offsetWidth ||
-    global.document.documentElement.clientWidth ||
-    global.document.body.offsetWidth ||
-    global.document.body.clientWidth
+    document.documentElement.offsetWidth ||
+    document.body.offsetWidth
   ),
   // the main iframe where tests will run
   iframe = global.document.getElementsByTagName('iframe')[0],
@@ -106,10 +102,8 @@ function XHR() {
 // re-set the iframe onload callback
 function addIframeOnLoad(callback) {
   // if a callback is specified ...
-  var onIframeLoad = iframe.onload = callback ?
+  iframe.onload = callback ?
     function () {
-      // nullify onreadystatechange
-      onIframeLoad = iframe.onreadystatechange = Object;
       // update all references first
       onload();
       // then invoke the test after a little while
@@ -119,18 +113,8 @@ function addIframeOnLoad(callback) {
       );
     } :
     // otherwise it just update references
-    function() {
-      // nullify onreadystatechange
-      onIframeLoad = iframe.onreadystatechange = Object;
-      // update all references
-      onload();
-    }
+    onload
   ;
-  iframe.onreadystatechange = function () {
-    if (/complete/.test(iframe.readyState)) {
-      onIframeLoad.call(iframe);
-    }
-  };
 }
 
 // shortcut to add error listener/handler in both old browsers and modern
@@ -138,7 +122,7 @@ function addListener(where, which, what, lvl0) {
   if ('addEventListener' in where) {
     where.addEventListener(which, what, true);
   } else {
-    where.attachEvent('on' + which, what);
+    where.attachEvent('on' + where, which);
   }
   if (lvl0) {
     where['on' + which] = lvl0;
@@ -189,15 +173,8 @@ function dispatch(node, evt) {
 // what to do when an error occurres
 function error(e) {
   var message = e.message || 'ERROR';
+  removeListener(window, 'error', error, onerror);
   removeListener(global, 'error', error, onerror);
-  try {
-    // the window might be not the expected one
-    // so this could actually throw ...
-    removeListener(window, 'error', error, onerror);
-  } catch(e) {
-    // ... that means the test failed anyway
-    // showingt the initial error is more important
-  }
   showResult(message);
   sandbox.error(message + (
     e.stack ? '\n' + e.stack : ''
@@ -294,7 +271,7 @@ function removeListener(where, which, what, lvl0) {
   if ('removeEventListener' in where) {
     where.removeEventListener(which, what, true);
   } else {
-    where.detachEvent('on' + which, what);
+    where.detachEvent('on' + where, which);
   }
   if (lvl0) {
     where['on' + which] = null;
@@ -304,22 +281,16 @@ function removeListener(where, which, what, lvl0) {
 // show a big green or red page accordingly with tests result
 function showResult(text) {
   var
-    innerHTML = GOOGLE_FONT,
+    innerHTML = '<center><b>' + text + '</b></center>',
     html
   ;
-
-  innerHTML += '<center><b>' + text + '</b></center>';
   try {
     (html = global.document.documentElement).innerHTML = innerHTML;
   } catch(probablyIE9Mobile) {
     (html = document.body).innerHTML = innerHTML;
   }
-  // a bit of styling
-  html.style.fontFamily = '\'Ubuntu\', Arial, sans-serif';
-  html.style.fontSize = '3.5em';
-
-  html.style.background = text == 'OK' ? '#62b81d' : (
-    text === 'offline' ? '#fff000' : '#d9313b'
+  html.style.background = text == 'OK' ? '#0F0' : (
+    text === 'offline' ? '#FF0' : '#F00'
   );
 }
 
@@ -330,20 +301,11 @@ function stopPropagation() {
 
 // update all shared variables in this scope
 function updateReferences() {
-  var html, context,
-      newWindow = grabWindow();
-  try {
-    // the new document might have security restrictions
-    // regardless it's exposed as network address
-    // document.domain or other tricks might fail for now
-    // however, we want to know when this happens
-    sandbox.document = document = newWindow.document;
-  } catch(e) {
-    // and stop test execution ASAP
-    return error(e);
-  }
+  var html, context;
   // the new window
-  sandbox.window = window = newWindow;
+  sandbox.window = window = grabWindow();
+  // the new document
+  sandbox.document = document = window.document;
   // necessary to avoid problems with non respected
   // viewport size inside the iframe
   html = document.documentElement;
@@ -480,14 +442,14 @@ var
     // it is possible to not specify the callback and use instead
     // sb.load('/newPath').then(callback);
     load: function (href, callback) {
-      if (!HTTPS && !/^about:/.test(href)) {
+      if (!/^about:/.test(href)) {
         var xhr = XHR();
         xhr.open('HEAD', href, false);
         xhr.send(null);
         sandbox.status = xhr.status;
       }
       addIframeOnLoad(callback);
-      iframe.src = href;
+      window.location.href = href;
       lastAction = 'load';
       return sandbox;
     },
@@ -496,7 +458,7 @@ var
     loadFromDifferentDomain: function(href, callback) {
       sandbox.status = 0;
       addIframeOnLoad(callback);
-      iframe.src = '/' + encodeURIComponent('<<<' + href);
+      window.location.href = '/' + encodeURIComponent('<<<' + href);
       lastAction = 'load';
       return sandbox;
     },
@@ -555,105 +517,6 @@ var
           lastCallback = callback;
           break;
       }
-    },
-    // helps scrolling
-    scrollTo: function (nodeOrQuery, y) {
-      var window = sandbox.window.top;
-      if (y != null) {
-        window.scrollTo(nodeOrQuery, y);
-      } else {
-        var
-          node = getNode(nodeOrQuery),
-          nodeBody = node.ownerDocument.body,
-          document = window.document,
-          html = document.documentElement,
-          body = document.body,
-          top = function () {
-            return  nodeBody.scrollTop ||
-                    body.scrollTop ||
-                    html.scrollTop ||
-                    window.pageYOffset;
-          },
-          stillNothing = function () {
-            return scrollTop === top();
-          },
-          scrollTop = top(),
-          y
-        ;
-        if ('scrollIntoView' in node) {
-          node.scrollIntoView(true);
-        }
-        if (stillNothing()) {
-          y = node.offsetTop;
-          while(node = node.offsetParent){
-            y += node.offsetTop;
-          }
-          nodeBody.scrollTop = y;
-          if (stillNothing()) {
-            sandbox.scrollTo(0, y);
-            if (stillNothing()) {
-              body.scrollTop = y;
-              if (stillNothing()) {
-                html.scrollTop = y;
-              }
-            }
-          }
-        }
-      }
-    },
-    // TODO: use mouse and pointerEvents too
-    swipe: function (nodeOrQuery, options, callback) {
-      var
-        node = getNode(nodeOrQuery),
-        from = options.from,
-        to = options.to,
-        document = sandbox.document,
-        html = document.documentElement,
-        body = document.body,
-        ratio = options.ratio || 1,
-        action = function (type, point) {
-          var evt = sandbox.event(type);
-          evt.touches = type === 'touchend' ? [] : [{
-            clientX: point.x,
-            clientY: point.y,
-            screenX: point.x * ratio,
-            screenY: point.y * ratio,
-            pageX: point.x + (
-              html.scrollLeft || body.scrollLeft
-            ),
-            pageY: point.y + (
-              html.scrollTop || body.scrollTop
-            )
-          }];
-          sandbox.dispatch(node, evt);
-        },
-        fps = 1000 / Math.max(1, Math.min(options.fps || 60, 60)),
-        x = 0,
-        y = 0
-      ;
-      (function trigger(){
-        var currentX = Math.round(from.x + x),
-            currentY = Math.round(from.y + y),
-            type;
-        if (currentX === from.x && currentY === from.y) {
-          // first time, touchstart
-          type = 'touchstart';
-        } else if (currentX === to.x && currentY === to.y) {
-          type = 'touchend';
-        } else {
-          type = 'touchmove';
-        }
-        action(type, {
-          x: currentX,
-          y: currentY
-        });
-        x += (to.x - from.x) * .1;
-        y += (to.y - from.y) * .1;
-        setTimeout(type === 'touchend' ?
-          createCallbackWrap(callback) : trigger,
-          fps
-        );
-      }());
     },
     // simulates a user writing in a specific field
     // triggering syntethic keyboard events too
@@ -723,16 +586,11 @@ var
   // save timeout, loop, and tests since window.$ will be removed
   TIMEOUT = $.timeout,
   LOOP = $.loop,
-  HTTPS = $.HTTPS,
   tests = $.tests
 ;
 
 // remove traces of this function in the global scope
-try {
-  delete global.$;
-} catch(IE6) {
-  global.$ = null;
-}
+delete global.$;
 // also drop the previously set onload
 global.onload = global.$;
 
@@ -918,7 +776,6 @@ if (!tests.length) {
     '   --email=me@you.us if specified, sends an email with errors/fixes notifications',
     '   --loop=1          if 0 or false, it exists after first execution',
     '   --show-success=0  if 1 or true, it shows all successful attempts',
-    '   --wifi-only=0     if 1 or true, it shows only en1+ or wlan ignoring en0 in Mac',
     '',
     '',
     ' [2] test content',
@@ -942,17 +799,12 @@ if (!tests.length) {
 
 var // dependencies
   http = require('http'),
-  https = require('https'),
   fs = require('fs'),
   os = require('os'),
   path = require('path'),
   url = require('url'),
   // end of line
   EOL = os.EOL || '\n',
-  // is it HTTPS (any --https flag would do) ?
-  HTTPS = !!Object.keys(process.env).filter(function(key){
-    return this.test(key);
-  }, /^HTTPS(?:_[A-Z]+)*$/).length,
   // which IP for the current server + proxy ?
   IP = process.env.IP || '0.0.0.0',
   // which port is for testardo ?
@@ -960,7 +812,7 @@ var // dependencies
   // which host/domain name ?
   HOST = process.env.HOST || 'localhost',
   // which server port to mirror/proxy via testardo ?
-  MIRROR = process.env.MIRROR || (HTTPS ? 443 : 80),
+  MIRROR = process.env.MIRROR || 80,
   // how long before each test should timeout ?
   // note:  if specified inside the test as timeout property
   //        that value will be used instead
@@ -976,94 +828,35 @@ var // dependencies
   FULL_HOST = HOST + ':' + MIRROR,
   // recycled options object per each proxy request
   options = {
-    passphrase: enrichHTTPSOptions('passphrase'),
-    pfx: enrichHTTPSOptions('pfx'),
-    key: enrichHTTPSOptions('key', [
-      '-----BEGIN RSA PRIVATE KEY-----',
-      'MIICXQIBAAKBgQDLrcjMw8Gcg+jlit75Arz+HnMs/lG4hP5nSBL2H449i+KsQHJz',
-      '6EA+uyAqTSwyfhqRMkdLUkYoXAQP4SklMCkaxaBBrd6dem8tT1ckIaA0PfdJYfDC',
-      'uKczHG2klnq2/NAw/O33AK58dbtxfSRzFJPMs3gBtt6/UWti4Ilb1aQe9wIDAQAB',
-      'AoGBAMoU13iJ9MuUePtd6FJJbDf5AC8w+OXJVhwk/2Mg9eCMrM5YdvYXBb73rDcs',
-      'MGC8iyFqMCBENgWPHhyfOlKCURRQxb2u+xWBssbM940NAl0Gie9WzPxw041QmwDQ',
-      '0Qqy1aC/Okcz0lbTDbidbnc6fvTV1aC65Pr2+98vgw7cVWlxAkEA5csSTCGCF3vS',
-      'nRsVV88MJCZLP2/GgP7CSeMDmLHwTCVr2JmDVa+R/1Dom+kXG3Cr9Q0xCy1RzO4G',
-      'OddAOotG+QJBAOLoSjXHPzf48md/8c8vgB9NBc0hlMuY54xMjSxACCb4g1miPh+Z',
-      'CKeGZgxHirndJi6GAJYwoI3MLWuqkyM8YW8CQQCU4MhuApeiV1rQ5qchSMd49EZ0',
-      'Rxq4oFWIQUgnOcGR0/zXTD5G2YUhgW3y9UU/RfRiw7UupKIGv3/RIaA/TdUhAkBz',
-      '2Q0qb9PDDAMW/KfElAfh8z0nAiIp4KM3ak4ZbYe7/d1yAfedwlA81816L3yQcGxy',
-      'DFB4XdNbEgeOlMQSlV1ZAkB6NnAfNJDkwwpN2sM3QM4OtvWsWHYO2bFbRGqoOryq',
-      'UEACAx5/UdL4MPhUf5oyDOauu/UpV/BqObFLnvunj05O',
-      '-----END RSA PRIVATE KEY-----'].join('\n')
-    ),
-    cert: enrichHTTPSOptions('cert', [
-      '-----BEGIN CERTIFICATE-----',
-      'MIICfzCCAegCCQD9vawlAR85XjANBgkqhkiG9w0BAQUFADCBgzELMAkGA1UEBhMC',
-      'SVQxFTATBgNVBAgTDEdydW1weUxhbmRpYTETMBEGA1UEBxMKR3J1bXB5Q2l0eTEX',
-      'MBUGA1UEChMOR3J1bXB5IENhdCBMVEQxDzANBgNVBAMTBkdydW1weTEeMBwGCSqG',
-      'SIb3DQEJARYPY2F0LmdAZ21haWwuY29tMB4XDTEzMDkyNjA5NTUyNloXDTM4MDUx',
-      'ODA5NTUyNlowgYMxCzAJBgNVBAYTAklUMRUwEwYDVQQIEwxHcnVtcHlMYW5kaWEx',
-      'EzARBgNVBAcTCkdydW1weUNpdHkxFzAVBgNVBAoTDkdydW1weSBDYXQgTFREMQ8w',
-      'DQYDVQQDEwZHcnVtcHkxHjAcBgkqhkiG9w0BCQEWD2NhdC5nQGdtYWlsLmNvbTCB',
-      'nzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAy63IzMPBnIPo5Yre+QK8/h5zLP5R',
-      'uIT+Z0gS9h+OPYvirEByc+hAPrsgKk0sMn4akTJHS1JGKFwED+EpJTApGsWgQa3e',
-      'nXpvLU9XJCGgND33SWHwwrinMxxtpJZ6tvzQMPzt9wCufHW7cX0kcxSTzLN4Abbe',
-      'v1FrYuCJW9WkHvcCAwEAATANBgkqhkiG9w0BAQUFAAOBgQA9c1UF2lbYGlNFruMO',
-      'd47scNsZBkSSnRRMSloNhO2KIOhRA57WjFk9b0XmCe1gQuNlEWVHf+HZv/Xet8+9',
-      'LRhImq4KAG5R+z3TjBrtI/yrVWEzNk+mnygRvsX6MoDKNDbzE6y87tviBUxNgAWB',
-      'r/pX8MbqC5NpbLys0A1cpm9tRw==',
-      '-----END CERTIFICATE-----'
-    ].join('\n')),
-    ca: enrichHTTPSOptions('ca', [
-      '-----BEGIN CERTIFICATE REQUEST-----',
-      'MIIBxDCCAS0CAQAwgYMxCzAJBgNVBAYTAklUMRUwEwYDVQQIEwxHcnVtcHlMYW5k',
-      'aWExEzARBgNVBAcTCkdydW1weUNpdHkxFzAVBgNVBAoTDkdydW1weSBDYXQgTFRE',
-      'MQ8wDQYDVQQDEwZHcnVtcHkxHjAcBgkqhkiG9w0BCQEWD2NhdC5nQGdtYWlsLmNv',
-      'bTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAy63IzMPBnIPo5Yre+QK8/h5z',
-      'LP5RuIT+Z0gS9h+OPYvirEByc+hAPrsgKk0sMn4akTJHS1JGKFwED+EpJTApGsWg',
-      'Qa3enXpvLU9XJCGgND33SWHwwrinMxxtpJZ6tvzQMPzt9wCufHW7cX0kcxSTzLN4',
-      'Abbev1FrYuCJW9WkHvcCAwEAAaAAMA0GCSqGSIb3DQEBBQUAA4GBAJJv/mdIboZH',
-      'fZIEz0pw2vmKhpceoiXhz7HTllFZ/om/msAPRA5V0kyXEZJ32YIUBv2MR6cHtoHQ',
-      'vag7cw+GifXSgyT8loDG2dAjvWtiFXXGKN6YnkJW6iXOHDVo5ETdaJCI3pUhHVSB',
-      'GGtjL91MJhEmB6q7SDNfaBroQ9UYAu4C',
-      '-----END CERTIFICATE REQUEST-----'
-    ].join('\n')),
-    ciphers: enrichHTTPSOptions('ciphers'),
-    headers: null,
     host: HOST,
     port: MIRROR,
-    path: ''
+    path: '',
+    headers: null
   },
   // recycled headers for entry page
-  html = {
-    "Content-Type": "text/html",
-    headers: addCORS({})
-  },
+  html = {"Content-Type": "text/html"},
 
   // recycled headers for local libraries
-  js = {
-    "Content-Type": "application/javascript",
-    headers: addCORS({})
-  },
+  js = {"Content-Type": "application/javascript"},
 
   // all UA that failed the test
   failures = Object.create(null),
 
   // what to do once loaded
   onload = function(response) {
+    // simplify browser and tests life via cross frame access
+    response.headers['x-frame-options'] = 'ALLOWALL';
+    response.headers['x-xss-protection'] = 0;
     // send same status and headers
-    this.response.writeHead(
-      response.statusCode,
-      addCORS(response.headers)
-    );
+    this.response.writeHead(response.statusCode, response.headers);
     // pipe the whole response to the current one
     response.pipe(this.response);
   },
 
-  onerror = function (err) {
+  onerror = function () {
     if (!favicon.test(this.path)) {
       process.stderr.write(this.path);
       console.log(EOL);
-      console.error(err);
     }
   },
 
@@ -1086,32 +879,8 @@ var // dependencies
   // this is used to write inline testardo client to the browser
   fn = /^#[^\n\r]+|\/\*(server)[^\x00]*?\1\*\//g,
   // by default browsers want this file
-  favicon = /^\/favicon\.ico/,
-  // which proxy ?
-  proxy = HTTPS ? https : http
+  favicon = /^\/favicon\.ico/
 ;
-
-if (options.ca) options.ca = [options.ca];
-if (HTTPS) process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
-
-// enrich headers with CORS evilness
-function addCORS(headers) {
-  // simplify browser and tests life via cross frame access
-  headers['x-frame-options'] = 'ALLOWALL';
-  headers['x-xss-protection'] = 0;
-  headers['access-control-allow-origin'] = '*';
-  return headers;
-}
-
-// used to set SSH options 
-function enrichHTTPSOptions(key, dflt) {
-  key = 'HTTPS_' + key.toUpperCase();
-  var value = process.env[key];
-  if (value && value != 1 && /^[^-----]/.test(value) && fs.existsSync(value)) {
-    value = fs.readFileSync(body, 'utf-8');
-  }
-  return (value == 1 ? dflt : value) || null;
-}
 
 // simply send an empty page and exit the process if necessary
 function emptyPage(response, exit) {
@@ -1171,10 +940,7 @@ function server(req, response){
       '<title>testardo@', FULL_HOST, '</title>',
       '<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">',
       '<style>*{zoom:1;border:0;margin:0;padding:0;width:100%;height:100%;font-size:0;line-height:0;}</style>',
-      '<iframe ',
-        'sandbox="allow-same-origin allow-top-navigation allow-forms allow-scripts" ',
-        'src="about:blank"',
-      '></iframe>',
+      '<iframe src="about:blank"></iframe>',
       // it includes `testardo` itself to offer a zero-config solution
       '<script>', fs.readFileSync(__filename, 'utf-8').toString().replace(fn, ''), EOL,
         // pre fetch all tests for the browser
@@ -1183,8 +949,6 @@ function server(req, response){
         '$.timeout=', TIMEOUT, ';', EOL,
         // specify if it should loop forever
         '$.loop=', !DONT_LOOP, ';', EOL,
-        // is it simulating HTTPS ?
-        '$.HTTPS=', HTTPS, ';', EOL,
         // initialize testardo on the client side
         'this.onload=$;',
       '</script>'
@@ -1236,7 +1000,7 @@ function server(req, response){
       //          - pros: less bandwidth used
       //          - cons: no updated content when/if necessary
       //          - how:  probably a <<* instead of <<< to force download?
-      proxy
+      http
         .get(url.parse(body), onload)
         .on('error', onerror)
         .response = response
@@ -1252,16 +1016,9 @@ function server(req, response){
     }
   } else {
     // any other request will be proxied to the MIRROR port
-    if (!HTTPS) {
-      options.headers = req.headers;
-    }
-    options.headers.host = HOST;
     options.path = req.url;
-    proxy
-      .get(options, onload)
-      .on('error', onerror)
-      .response = response
-    ;
+    options.headers = req.headers;
+    http.get(options, onload).on('error', onerror).response = response;
   }
 }
 
@@ -1269,27 +1026,25 @@ function server(req, response){
 // incrementally trying until it can start on the specified IP
 (function startServer() {
   http.createServer(server).on('error', startServer).listen(PORT++, IP, function() {
-    // show possible Network/WiFi interfaces during startup
+    // show possible WiFi interfaces during startup
     var interfaces = os.networkInterfaces(),
-        ethernetFilter = process.env.WIFI_ONLY ?
-          /^en[1-9]\d*|wlan\d+$/ :
-          /^(?:en|wlan|eth)\d+$/,
         show = [];
     Object.keys(interfaces).forEach(
       function(key){
-        interfaces[key].forEach(this, key);
+        interfaces[key].forEach(this, [key]);
       },
       function(obj){
+        var networkwInterface = this[0];
         if (
           // not an internal interface
           !obj.internal &&
           // right now easier to reach through the network/url bar
           obj.family === 'IPv4' &&
           // either WiFi in Mac or Linux
-          ethernetFilter.test(this)
+          /^en[0-9]\d*|wlan\d+$/.test(networkwInterface)
         ) {
           // put this as possible reachable url for testing
-          show.push(this + ': http://' + obj.address + ':' + (PORT - 1) + '/$');
+          show.push(networkwInterface + ': http://' + obj.address + ':' + (PORT - 1) + '/$');
         }
       }
     );

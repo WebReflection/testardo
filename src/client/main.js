@@ -8,10 +8,8 @@ var
   // try to understand the current page width
   WIDTH = (
     global.innerWidth ||
-    global.document.documentElement.offsetWidth ||
-    global.document.documentElement.clientWidth ||
-    global.document.body.offsetWidth ||
-    global.document.body.clientWidth
+    document.documentElement.offsetWidth ||
+    document.body.offsetWidth
   ),
   // the main iframe where tests will run
   iframe = global.document.getElementsByTagName('iframe')[0],
@@ -33,10 +31,8 @@ function XHR() {
 // re-set the iframe onload callback
 function addIframeOnLoad(callback) {
   // if a callback is specified ...
-  var onIframeLoad = iframe.onload = callback ?
+  iframe.onload = callback ?
     function () {
-      // nullify onreadystatechange
-      onIframeLoad = iframe.onreadystatechange = Object;
       // update all references first
       onload();
       // then invoke the test after a little while
@@ -46,18 +42,8 @@ function addIframeOnLoad(callback) {
       );
     } :
     // otherwise it just update references
-    function() {
-      // nullify onreadystatechange
-      onIframeLoad = iframe.onreadystatechange = Object;
-      // update all references
-      onload();
-    }
+    onload
   ;
-  iframe.onreadystatechange = function () {
-    if (/complete/.test(iframe.readyState)) {
-      onIframeLoad.call(iframe);
-    }
-  };
 }
 
 // shortcut to add error listener/handler in both old browsers and modern
@@ -65,7 +51,7 @@ function addListener(where, which, what, lvl0) {
   if ('addEventListener' in where) {
     where.addEventListener(which, what, true);
   } else {
-    where.attachEvent('on' + which, what);
+    where.attachEvent('on' + where, which);
   }
   if (lvl0) {
     where['on' + which] = lvl0;
@@ -116,15 +102,8 @@ function dispatch(node, evt) {
 // what to do when an error occurres
 function error(e) {
   var message = e.message || 'ERROR';
+  removeListener(window, 'error', error, onerror);
   removeListener(global, 'error', error, onerror);
-  try {
-    // the window might be not the expected one
-    // so this could actually throw ...
-    removeListener(window, 'error', error, onerror);
-  } catch(e) {
-    // ... that means the test failed anyway
-    // showingt the initial error is more important
-  }
   showResult(message);
   sandbox.error(message + (
     e.stack ? '\n' + e.stack : ''
@@ -221,7 +200,7 @@ function removeListener(where, which, what, lvl0) {
   if ('removeEventListener' in where) {
     where.removeEventListener(which, what, true);
   } else {
-    where.detachEvent('on' + which, what);
+    where.detachEvent('on' + where, which);
   }
   if (lvl0) {
     where['on' + which] = null;
@@ -251,20 +230,11 @@ function stopPropagation() {
 
 // update all shared variables in this scope
 function updateReferences() {
-  var html, context,
-      newWindow = grabWindow();
-  try {
-    // the new document might have security restrictions
-    // regardless it's exposed as network address
-    // document.domain or other tricks might fail for now
-    // however, we want to know when this happens
-    sandbox.document = document = newWindow.document;
-  } catch(e) {
-    // and stop test execution ASAP
-    return error(e);
-  }
+  var html, context;
   // the new window
-  sandbox.window = window = newWindow;
+  sandbox.window = window = grabWindow();
+  // the new document
+  sandbox.document = document = window.document;
   // necessary to avoid problems with non respected
   // viewport size inside the iframe
   html = document.documentElement;
