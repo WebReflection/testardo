@@ -15,7 +15,11 @@ var
 ;
 
 // remove traces of this function in the global scope
-delete global.$;
+try {
+  delete global.$;
+} catch(IE6) {
+  global.$ = null;
+}
 // also drop the previously set onload
 global.onload = global.$;
 
