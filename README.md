@@ -23,6 +23,11 @@ As long as your Mac/Linux machine is reachable through the same network there's 
 
 If you want to have an idea of _testardo_ options at launch time, please check the [how-to](src/server/how-to.js) file, or launch `./testardo` without arguments in your console.
 
+#### API
+The documentation for the client is [commented in this file](https://github.com/WebReflection/testardo/blob/master/src/client/sandbox.js), that is the `sandbox` object every test receives.
+
+For the server, just write `testardo` to know options.
+
 
 ### basic HTTPS support
 Landed in version `0.2.x` basic HTTPS support, i.e. `testardo --host=webreflection.github.io --https examples/eddy.js`
