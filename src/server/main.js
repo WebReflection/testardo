@@ -159,6 +159,8 @@ function addCORS(headers) {
   headers['x-frame-options'] = 'ALLOWALL';
   headers['x-xss-protection'] = 0;
   headers['access-control-allow-origin'] = '*';
+  headers['access-control-allow-headers'] = '*';
+  headers['access-control-request-method'] = '*';
   return headers;
 }
 
@@ -318,10 +320,11 @@ function server(req, response){
       options.headers.host = HOST;
     }
     options.path = req.url;
-    proxy
-      .get(options, onload)
-      .on('error', onerror)
-      .response = response
-    ;
+    options.method = req.method;
+    var r = proxy
+      .request(options, onload)
+      .on('error', onerror);
+    r.response = response;
+    r.end();
   }
 }
